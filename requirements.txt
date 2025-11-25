@@ -2,3 +2,5 @@ Flask
 pandas
 openpyxl
 numpy
+gunicorn
+flask-cors
