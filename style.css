@@ -1,0 +1,154 @@
+/* Importação de uma fonte moderna */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+/* --- Variáveis de Cor --- */
+:root {
+    --color-primary: #A020F0; /* Roxo principal */
+    --color-secondary: #C71585; /* Rosa/Magenta */
+    --color-background-dark: #000000;
+    --color-surface-dark: #1E1E1E;
+    --color-text-light: #F0F0F0;
+    --color-input-bg: #333333;
+}
+
+/* --- Base --- */
+body {
+    background-color: var(--color-background-dark);
+    color: var(--color-text-light);
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.app-container {
+    width: 100%;
+    max-width: 600px; /* Aumentado para melhor visualização no PC */
+    background-color: var(--color-surface-dark);
+    border-radius: 30px; /* Bordas mais arredondadas */
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.7);
+    padding: 30px 25px;
+    margin: 20px; /* Adiciona margem vertical para não colar nas bordas */
+}
+
+/* --- Cabeçalho e Título --- */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.header h1 {
+    font-size: 1.8em;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.header span {
+    background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* --- Área de Busca e Inputs --- */
+.search-bar {
+    margin-bottom: 30px;
+}
+
+.input-group {
+    display: flex;
+    gap: 10px; /* Espaçamento entre RE e Data */
+    margin-bottom: 15px;
+}
+
+.input-group input {
+    flex-grow: 1;
+    padding: 12px 15px;
+    border: none;
+    border-radius: 12px;
+    background-color: var(--color-input-bg);
+    color: var(--color-text-light);
+    font-size: 1em;
+}
+
+/* --- Botões de Ação --- */
+.action-buttons {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.action-buttons button {
+    flex-grow: 1;
+    padding: 15px;
+    border: none;
+    border-radius: 15px;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.action-buttons button:nth-child(1) {
+    background: var(--color-primary); /* Roxo */
+    color: white;
+}
+
+.action-buttons button:nth-child(2) {
+    background: var(--color-secondary); /* Magenta */
+    color: white;
+}
+
+.action-buttons button:hover {
+    transform: scale(1.05);
+}
+
+/* --- Área de Resultados --- */
+#resultado {
+    margin-top: 25px;
+    padding: 20px;
+    border-radius: 20px;
+    background-color: #282828; /* Um tom um pouco mais claro para contraste */
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+    font-size: 0.9em;
+    line-height: 1.4;
+    overflow-x: auto; /* Permite rolar a tabela horizontalmente em telas pequenas */
+    /* Removemos o 'white-space: pre-wrap;' que estava quebrando o layout */
+    white-space: normal;
+}
+
+/* --- Estilo da Tabela (O CRUCIAL PARA ORGANIZAÇÃO) --- */
+#resultado table {
+    width: 100%;
+    min-width: 550px; /* Largura mínima para garantir que as colunas caibam */
+    border-collapse: collapse;
+    margin-top: 15px;
+    font-size: 0.95em;
+    background-color: var(--color-surface-dark); /* Fundo da tabela escuro */
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+#resultado th, #resultado td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid #444; /* Linha divisória suave */
+}
+
+#resultado th {
+    background-color: #383838; /* Fundo do cabeçalho mais escuro */
+    color: var(--color-text-light);
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.85em;
+}
+
+/* Linha de totais (se houver strong dentro do td) */
+#resultado td strong {
+    color: #3CB371; /* Cor Verde para os totais/ênfase */
+    font-weight: 700;
+}

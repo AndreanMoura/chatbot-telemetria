@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telemetria | Consulta de Dados</title>
+    
+    <link rel="stylesheet" href="style.css"> 
+</head>
+<body>
+    <div class="app-container">
+
+        <div class="header">
+            <h1>Consulta de <br> <span>Motorista RE</span></h1>
+            
+            <div class="icon" style="font-size: 24px;">☰</div> 
+        </div>
+
+        <div class="search-bar">
+            
+            <div class="input-group">
+                <input type="text" id="chapa" placeholder="Número do RE (Chapa)" required>
+                <input type="text" id="data" placeholder="Data (DD/MM/YYYY)" required>
+            </div>
+            
+            <div class="action-buttons">
+                <button onclick="consultar('eventos')">Eventos Detalhados</button>
+                <button onclick="consultar('metricas')">Resumo de Métricas</button>
+            </div>
+        </div>
+        
+        <h2>Resultados</h2>
+        <div id="resultado">
+            <p>Selecione o RE, a data e clique em uma das opções acima para buscar os dados na API.</p>
+        </div>
+        
+    </div>
+
+    <script src="script.js"></script> 
+</body>
+</html>
