@@ -26,15 +26,15 @@ body {
 
 .app-container {
     width: 100%;
-    max-width: 600px; /* Aumentado para melhor visualização no PC */
+    max-width: 600px;
     background-color: var(--color-surface-dark);
-    border-radius: 30px; /* Bordas mais arredondadas */
+    border-radius: 30px;
     box-shadow: 0 0 50px rgba(0, 0, 0, 0.7);
     padding: 30px 25px;
-    margin: 20px; /* Adiciona margem vertical para não colar nas bordas */
+    margin: 20px;
 }
 
-/* --- Cabeçalho e Título --- */
+/* --- Cabeçalho --- */
 .header {
     display: flex;
     justify-content: space-between;
@@ -45,7 +45,6 @@ body {
 .header h1 {
     font-size: 1.8em;
     font-weight: 700;
-    line-height: 1.2;
 }
 
 .header span {
@@ -54,14 +53,14 @@ body {
     -webkit-text-fill-color: transparent;
 }
 
-/* --- Área de Busca e Inputs --- */
+/* --- Inputs --- */
 .search-bar {
     margin-bottom: 30px;
 }
 
 .input-group {
     display: flex;
-    gap: 10px; /* Espaçamento entre RE e Data */
+    gap: 10px;
     margin-bottom: 15px;
 }
 
@@ -75,7 +74,7 @@ body {
     font-size: 1em;
 }
 
-/* --- Botões de Ação --- */
+/* --- Botões --- */
 .action-buttons {
     display: flex;
     gap: 15px;
@@ -94,12 +93,12 @@ body {
 }
 
 .action-buttons button:nth-child(1) {
-    background: var(--color-primary); /* Roxo */
+    background: var(--color-primary);
     color: white;
 }
 
 .action-buttons button:nth-child(2) {
-    background: var(--color-secondary); /* Magenta */
+    background: var(--color-secondary);
     color: white;
 }
 
@@ -112,43 +111,77 @@ body {
     margin-top: 25px;
     padding: 20px;
     border-radius: 20px;
-    background-color: #282828; /* Um tom um pouco mais claro para contraste */
+    background-color: #282828;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
     font-size: 0.9em;
     line-height: 1.4;
-    overflow-x: auto; /* Permite rolar a tabela horizontalmente em telas pequenas */
-    /* Removemos o 'white-space: pre-wrap;' que estava quebrando o layout */
+    overflow-x: auto;
     white-space: normal;
 }
 
-/* --- Estilo da Tabela (O CRUCIAL PARA ORGANIZAÇÃO) --- */
-#resultado table {
+/* --- Texto de meta informações (Motorista / Data) --- */
+.meta {
+    font-weight: 600;
+    margin-bottom: 10px;
+    font-size: 0.95em;
+    color: #ddd;
+}
+
+/* --- Tabela estilo Excel --- */
+.tabela-excel {
     width: 100%;
-    min-width: 550px; /* Largura mínima para garantir que as colunas caibam */
+    min-width: 550px;
     border-collapse: collapse;
     margin-top: 15px;
-    font-size: 0.95em;
-    background-color: var(--color-surface-dark); /* Fundo da tabela escuro */
-    border-radius: 10px;
+    background-color: #1E1E1E;
+    border-radius: 12px;
     overflow: hidden;
 }
 
-#resultado th, #resultado td {
+.tabela-excel th {
+    background-color: #383838;
     padding: 10px 12px;
-    text-align: left;
-    border-bottom: 1px solid #444; /* Linha divisória suave */
-}
-
-#resultado th {
-    background-color: #383838; /* Fundo do cabeçalho mais escuro */
+    border-bottom: 2px solid #444;
     color: var(--color-text-light);
+    font-size: 0.85em;
     font-weight: 700;
     text-transform: uppercase;
-    font-size: 0.85em;
 }
 
-/* Linha de totais (se houver strong dentro do td) */
-#resultado td strong {
-    color: #3CB371; /* Cor Verde para os totais/ênfase */
+.tabela-excel td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #444;
+    color: #EAEAEA;
+}
+
+/* Alternância de linhas */
+.tabela-excel tr:nth-child(even) {
+    background-color: #262626;
+}
+
+/* Colunas numéricas alinhadas à direita */
+.num {
+    text-align: right !important;
+}
+
+/* Destaque para TOTAl */
+.tabela-excel td strong {
+    color: #3CB371;
     font-weight: 700;
+}
+
+/* --- Mensagens de status --- */
+.carregando {
+    color: #7B68EE;
+    font-weight: 600;
+}
+
+.erro {
+    color: #FF6347;
+    font-weight: 600;
+}
+
+.ok {
+    color: #3CB371;
+    font-weight: 600;
 }

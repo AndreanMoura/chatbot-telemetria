@@ -2,8 +2,7 @@
 const API_BASE_URL = 'https://chatbot-telemetria.onrender.com';
 
 /**
- * Função principal para consultar a API Flask (Rotas /eventos e /metricas)
- * @param {string} tipo - 'eventos' ou 'metricas'
+ * Função principal para consultar a API Flask
  */
 async function consultar(tipo) {
     const chapa = document.getElementById('chapa').value.trim();
@@ -11,9 +10,7 @@ async function consultar(tipo) {
     const resultadoDiv = document.getElementById('resultado');
 
     if (!chapa || !data) {
-        resultadoDiv.innerHTML = `
-            <p class="erro">❌ Preencha RE/Chapa e Data.</p>
-        `;
+        resultadoDiv.innerHTML = `<p class="erro">❌ Preencha RE/Chapa e Data.</p>`;
         return;
     }
 
@@ -36,8 +33,8 @@ async function consultar(tipo) {
         const json = await response.json();
         const texto = json.resultado;
 
-        // Converte tabela Markdown → tabela HTML
-        const htmlTabela = markdownParaTabela(texto);
+        // Converte tabela
+        const htmlTabela = gerarTabelaHTML(texto);
 
         resultadoDiv.innerHTML = `
             <h3 class="ok">✅ Consulta de ${tipo} concluída</h3>
@@ -53,60 +50,91 @@ async function consultar(tipo) {
 }
 
 /**
- * Converte tabela em Markdown → HTML formatado
+ * Conversor universal - transforma Markdown bagunçado em tabela HTML
+ * Funciona mesmo sem pipes "|"
  */
-function markdownParaTabela(md) {
-    const linhas = md.split("\n").filter(l => l.trim() !== "");
+function gerarTabelaHTML(md) {
+    const linhas = md.split("\n").map(l => l.trim()).filter(l => l !== "");
 
-    // Metadados (cabeçalho acima da tabela)
-    const meta = linhas.slice(0, 3).join("<br>");
+    // IDENTIFICA CABEÇALHO
+    const idxCabecalho = linhas.findIndex(l =>
+        l.includes("|") || l.split(" ").filter(x => x).length >= 4
+    );
 
-    // Tabela começa após linha "---"
-    const tabelaLinhas = linhas.slice(3);
+    if (idxCabecalho === -1) return md;
 
-    let cabecalho = tabelaLinhas[0]
+    const meta = linhas.slice(0, idxCabecalho).join("<br>");
+
+    let header = linhas[idxCabecalho];
+    let dados = linhas.slice(idxCabecalho + 1);
+
+    // Se o cabeçalho não tem pipes, adiciona
+    if (!header.includes("|")) {
+        const partes = header.split(" ").filter(x => x);
+        header = "| " + partes.join(" | ") + " |";
+    }
+
+    // Extrair colunas
+    const colunas = header
+        .replace(/\*/g, "")
         .replace(/\|/g, " ")
         .trim()
-        .split(/\s*\|\s*/)
-        .filter(c => c !== "");
+        .split(/\s+/);
 
     let html = `
         <div class="meta">${meta}</div>
-        <table class="tabela">
-            <thead>
-                <tr>
-                    ${cabecalho.map(c => `<th>${c}</th>`).join("")}
-                </tr>
-            </thead>
+        <table class="tabela-excel">
+            <thead><tr>
+                ${colunas.map(c => `<th>${c}</th>`).join("")}
+            </tr></thead>
             <tbody>
     `;
 
-    // Linhas de dados
-    for (let i = 2; i < tabelaLinhas.length; i++) {
-        const partes = tabelaLinhas[i]
-            .replace(/\|/g, " ")
-            .trim()
-            .split(/\s*\|\s*/)
-            .filter(c => c !== "");
+    // CONVERTE LINHAS EM TABELA — mesmo sem pipes
+    dados.forEach(linha => {
+        if (linha.includes("---")) return; // ignora linhas de separador
 
-        if (partes.length === cabecalho.length) {
-            html += `<tr>${partes.map((p, idx) => {
-                // Se for número, formatar
-                if (!isNaN(p)) {
-                    return `<td class="num">${formatarNumero(p)}</td>`;
-                }
-                return `<td>${p}</td>`;
-            }).join("")}</tr>`;
+        let partes;
+
+        if (linha.includes("|")) {
+            partes = linha.replace(/\|/g, " ").split(" ").filter(x => x);
+        } else {
+            partes = linha.split(" ").filter(x => x);
         }
-    }
 
-    html += `</tbody></table>`;
+        // Ajuste se vier mais dados que colunas → juntar o meio (nome do evento)
+        if (partes.length > colunas.length) {
+            partes = [
+                partes[0],                             // Tipo
+                partes.slice(1, partes.length - 2).join(" "), // Nome do evento
+                partes[partes.length - 2],             // Quantidade
+                partes[partes.length - 1]              // Pontos
+            ];
+        }
+
+        if (partes.length === colunas.length) {
+            html += "<tr>";
+            partes.forEach((p, i) => {
+                const limp = p.replace(/\*/g, "");
+
+                // Números formatados
+                if (!isNaN(limp.replace(".", "").replace(",", ""))) {
+                    html += `<td class="num">${formatarNumero(limp)}</td>`;
+                } else {
+                    html += `<td>${limp}</td>`;
+                }
+            });
+            html += "</tr>";
+        }
+    });
+
+    html += "</tbody></table>";
     return html;
 }
 
 /**
- * Formata números: 1000 → 1.000 | 12000 → 12.000
+ * Formata números (1000 → 1.000)
  */
 function formatarNumero(n) {
-    return Number(n).toLocaleString("pt-BR");
+    return Number(n.replace(",", ".")).toLocaleString("pt-BR");
 }
