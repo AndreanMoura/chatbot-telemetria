@@ -64,7 +64,7 @@ def consultar_eventos_detalhados(chapa, data_input):
     ]
 
     if df_filtrado.empty:
-        return f"ℹ️ Nenhum evento encontrado para a chapa **{chapa}** na data {data_input}."
+        return f"ℹ️ Nenhum evento encontrado para a chapa {chapa} na data {data_input}."
 
     # Pega dados do motorista
     nome = df_filtrado.iloc[0]["nome"]
@@ -72,10 +72,10 @@ def consultar_eventos_detalhados(chapa, data_input):
 
     # Construir tabela em Markdown
     resultado = []
-    resultado.append(f"👤 **Motorista:** {nome}")
-    resultado.append(f"🆔 **Chapa:** {chapa}")
-    resultado.append(f"💼 **Função:** {funcao}")
-    resultado.append(f"📅 **Data:** {data_input}")
+    resultado.append(f"👤 Motorista: {nome}")
+    resultado.append(f"🆔 Chapa: {chapa}")
+    resultado.append(f"💼 Função: {funcao}")
+    resultado.append(f"📅 Data: {data_input}")
     resultado.append("")
     resultado.append("| Evento | Quantidade |")
     resultado.append("| :--- | :---: |")
@@ -95,7 +95,7 @@ def consultar_eventos_detalhados(chapa, data_input):
 
         resultado.append(f"| {evento} | {qtd_formatada} |")
 
-    resultado.append(f"| Total Dia | **{formatar_numero(total_qtd)}** |")
+    resultado.append(f"| Total Dia | {formatar_numero(total_qtd)} |")
 
     return "\n".join(resultado)
 
@@ -133,13 +133,13 @@ def buscar_metricas_do_dia(chapa, data_input):
     ]
 
     if df_filtrado.empty:
-        return f"ℹ️ Nenhum registro encontrado para a chapa **{chapa}** na data {data_input}."
+        return f"ℹ️ Nenhum registro encontrado para a chapa {chapa} na data {data_input}."
 
     qtd_total = int(df_filtrado["quantidade"].astype(float).sum())
 
     return (
-        f"👤 **Chapa:** {chapa}\n"
-        f"📅 **Data consultada:** {data_input}\n\n"
+        f"👤 Chapa: {chapa}\n"
+        f"📅 Data consultada: {data_input}\n\n"
         f"| Métrica | Valor |\n"
         f"| :--- | :---: |\n"
         f"| Quantidade Total | {formatar_numero(qtd_total)} |"
