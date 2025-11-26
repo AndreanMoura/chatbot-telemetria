@@ -95,7 +95,7 @@ def consultar_eventos_detalhados(chapa, data_input):
 
         resultado.append(f"| {evento} | {qtd_formatada} |")
 
-    resultado.append(f"| **TOTAL** | **{formatar_numero(total_qtd)}** |")
+    resultado.append(f"| Total Dia | **{formatar_numero(total_qtd)}** |")
 
     return "\n".join(resultado)
 
