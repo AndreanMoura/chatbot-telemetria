@@ -3,14 +3,27 @@ from datetime import datetime
 import os
 
 # ===============================================================
-# CONFIGURAÇÕES DO ARQUIVO (CAMINHO RELATIVO)
+# CONFIGURAÇÃO DO ARQUIVO (CAMINHO RELATIVO)
 # ===============================================================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CAMINHO_DO_ARQUIVO_DADOS = os.path.join(BASE_DIR, "Telemetria.xlsx")
 NOME_ABA = "Telemetria"
 
 # ===============================================================
-# FUNÇÃO: CONSULTAR EVENTOS DETALHADOS POR DATA
+# FUNÇÃO AUXILIAR – FORMATAÇÃO DE NÚMEROS
+# ===============================================================
+def formatar_numero(n):
+    """
+    Formata números inteiros usando separador de milhar.
+    Exemplo: 3549 → 3.549
+    """
+    try:
+        return f"{int(float(n)):,}".replace(",", ".")
+    except:
+        return n
+
+# ===============================================================
+# FUNÇÃO: CONSULTAR EVENTOS DETALHADOS
 # ===============================================================
 def consultar_eventos_detalhados(re, data_input):
     try:
@@ -55,18 +68,18 @@ def consultar_eventos_detalhados(re, data_input):
     for _, row in df_filtrado.iterrows():
         tipo = str(row["Tipo de Evento"])
         evento = str(row["Evento"])
-        qtd = int(float(row["Quantidade"])) if pd.notna(row["Quantidade"]) else 0
-        pts = int(float(row["Pontos"])) if pd.notna(row["Pontos"]) else 0
+        qtd = formatar_numero(row["Quantidade"])
+        pts = formatar_numero(row["Pontos"])
         resultado.append(f"| {tipo} | {evento} | {qtd} | {pts} |")
 
-    total_qtd = int(df_filtrado["Quantidade"].astype(float).sum())
-    total_pts = int(df_filtrado["Pontos"].astype(float).sum())
+    total_qtd = formatar_numero(df_filtrado["Quantidade"].astype(float).sum())
+    total_pts = formatar_numero(df_filtrado["Pontos"].astype(float).sum())
     resultado.append(f"| **TOTAL** | — | **{total_qtd}** | **{total_pts}** |")
 
     return "\n".join(resultado)
 
 # ===============================================================
-# FUNÇÃO: CONSULTAR MÉTRICAS DIÁRIAS (RESUMO)
+# FUNÇÃO: CONSULTAR MÉTRICAS DO DIA
 # ===============================================================
 def buscar_metricas_do_dia(re, data_input):
     try:
@@ -84,8 +97,9 @@ def buscar_metricas_do_dia(re, data_input):
     except Exception as e:
         return f"🚨 Erro ao ler a planilha: {e}"
 
-    if not all(c in df.columns for c in ["Data", "RE", "Quantidade", "Pontos"]):
-        return "🚨 Colunas necessárias não encontradas no arquivo."
+    colunas_base = ["Data", "RE", "Quantidade", "Pontos"]
+    if not all(c in df.columns for c in colunas_base):
+        return f"🚨 Colunas necessárias ausentes: {colunas_base}"
 
     df["Data"] = pd.to_datetime(df["Data"], errors="coerce", dayfirst=True).dt.date
     df["RE"] = df["RE"].astype(str).str.strip().str.replace(".0", "", regex=False)
@@ -99,8 +113,8 @@ def buscar_metricas_do_dia(re, data_input):
     if df_filtrado.empty:
         return f"ℹ️ Nenhum registro encontrado para o RE '{re}' na data {data_input}."
 
-    qtd_total = int(df_filtrado["Quantidade"].astype(float).sum())
-    pontos_total = int(df_filtrado["Pontos"].astype(float).sum())
+    qtd_total = formatar_numero(df_filtrado["Quantidade"].astype(float).sum())
+    pontos_total = formatar_numero(df_filtrado["Pontos"].astype(float).sum())
 
     return (
         f"👤 **Motorista (RE):** {re_normalizado}\n"
@@ -112,7 +126,7 @@ def buscar_metricas_do_dia(re, data_input):
     )
 
 # ===============================================================
-# TESTE DIRETO
+# TESTE LOCAL
 # ===============================================================
 if __name__ == "__main__":
     print("🔍 Teste rápido: buscando eventos detalhados\n")
