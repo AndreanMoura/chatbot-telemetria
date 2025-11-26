@@ -37,17 +37,17 @@ html,body{
   flex-direction:column;
 }
 
-/* ==================== HEADER ==================== */
+/* ==================== HEADER (compacto) ==================== */
 .header{
   background:var(--surface);
-  padding:12px 14px;
+  padding:8px 10px; /* reduzido */
   display:flex;
   align-items:center;
-  gap:12px;
+  gap:8px; /* reduzido */
 }
 .avatar{
-  width:44px;
-  height:44px;
+  width:36px;  /* reduzido */
+  height:36px;
   border-radius:50%;
   display:flex;
   align-items:center;
@@ -55,39 +55,42 @@ html,body{
   background:linear-gradient(135deg,var(--bubble-user),var(--accent));
   color:white;
   font-weight:700;
+  font-size:0.85rem;
 }
 .title{
   font-weight:700;
-  font-size:1rem;
+  font-size:0.9rem; /* menor */
 }
 .subtitle{
-  font-size:0.8rem;
+  font-size:0.7rem; /* menor */
   color:var(--muted);
 }
 .btn-icon{
   background:transparent;
   border:none;
   color:var(--text-light);
-  padding:8px;
+  padding:6px; /* menor */
   cursor:pointer;
 }
 
-/* ==================== CHAT ==================== */
+/* ==================== CHAT (compacto) ==================== */
 .chat{
   flex:1;
   overflow-y:auto;
-  padding:18px 12px;
+  padding:10px 10px; /* diminiu o padding */
   display:flex;
   flex-direction:column;
-  gap:12px;
+  gap:6px; /* metade do original */
 }
 
+/* ==================== MENSAGENS ==================== */
 .msg{
-  max-width:86%;
-  padding:10px 14px;
-  border-radius:18px;
-  line-height:1.35;
-  box-shadow:0 2px 0 rgba(0,0,0,0.15);
+  max-width:85%;
+  padding:7px 10px; /* mais compacto */
+  border-radius:14px; /* borda menor */
+  line-height:1.28; /* menos espaço de linha */
+  box-shadow:0 1px 0 rgba(0,0,0,0.15);
+  font-size:0.88rem; /* levemente menor */
 }
 .msg.user{
   align-self:flex-end;
@@ -102,27 +105,27 @@ html,body{
 }
 .time{
   display:block;
-  font-size:0.72rem;
+  font-size:0.68rem; /* menor */
   color:var(--muted);
-  margin-top:6px;
+  margin-top:4px; /* reduzido */
   text-align:right;
 }
 
-/* ==================== TABLE ==================== */
+/* ==================== TABLE (compacto) ==================== */
 .tabela-excel{
   width:100%;
   border-collapse:collapse;
-  margin-top:8px;
-  font-size:0.9rem;
+  margin-top:6px; /* reduzido */
+  font-size:0.8rem;
 }
 .tabela-excel th{
   background:rgba(255,255,255,0.04);
-  padding:8px;
-  font-size:0.78rem;
+  padding:6px; /* reduzido */
+  font-size:0.72rem;
   text-align:left;
 }
 .tabela-excel td{
-  padding:8px;
+  padding:5px 6px; /* compactação */
   border-bottom:1px solid rgba(255,255,255,0.05);
 }
 .tabela-excel td.num{
@@ -132,42 +135,45 @@ html,body{
   color:#6ee7b7;
 }
 
-/* ==================== INPUT AREA ==================== */
+/* ==================== INPUT AREA (compacto) ==================== */
 .composer{
   display:flex;
-  gap:8px;
-  padding:12px;
+  gap:6px; /* reduzido */
+  padding:8px; /* diminuído */
   background:var(--surface);
   border-top:1px solid rgba(255,255,255,0.05);
 }
 .inputs{
   flex:1;
   display:flex;
-  gap:8px;
+  gap:6px; /* menor */
 }
 .field input{
-  padding:10px 12px;
+  padding:7px 10px; /* reduzido */
   border:none;
-  border-radius:12px;
+  border-radius:10px;
   background:var(--input-bg);
   color:var(--text-light);
-  font-size:0.95rem;
+  font-size:0.85rem;
 }
 
+/* Botões compactos */
 .btn-alt{
   background:transparent;
   border:1px solid rgba(255,255,255,0.1);
   color:var(--text-light);
-  padding:8px 10px;
-  border-radius:10px;
+  padding:6px 8px;
+  border-radius:8px;
+  font-size:0.8rem;
   cursor:pointer;
 }
 .btn-send{
   background:var(--accent);
   border:none;
-  padding:10px 12px;
-  border-radius:12px;
+  padding:7px 10px;
+  border-radius:10px;
   color:#003218;
   font-weight:700;
+  font-size:0.85rem;
   cursor:pointer;
 }
