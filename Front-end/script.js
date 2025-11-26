@@ -31,40 +31,51 @@ function formatarNumero(n) {
     return isNaN(num) ? n : num.toLocaleString("pt-BR");
 }
 
-/* ---------- Converte Markdown → Tabela HTML ---------- */
+/* ---------- Converte Markdown → HTML ---------- */
 function gerarTabelaHTML(md) {
     if (!md) return md;
 
-    const linhas = md.split("\n").map(l => l.trim()).filter(l => l !== "");
+    const linhas = md.split("\n").filter(l => l.trim() !== "");
 
+    // Encontra índice do cabeçalho
     const idxCab = linhas.findIndex(l => l.includes("|"));
     if (idxCab === -1) return `<pre>${md}</pre>`;
 
     const meta = linhas.slice(0, idxCab).join("<br>");
-    const header = linhas[idxCab];
-    const dados = linhas.slice(idxCab + 2);
 
-    const colunas = header.replace(/\|/g, " ").trim().split(/\s+/);
+    // Cabeçalho
+    const header = linhas[idxCab]
+        .split("|")
+        .map(s => s.trim())
+        .filter(Boolean);
 
+    // Linhas de dados
+    const dados = linhas
+        .slice(idxCab + 2) // pula cabeçalho + separador
+        .map(l =>
+            l.split("|")
+                .map(s => s.trim())
+                .filter(Boolean)
+        )
+        .filter(cols => cols.length > 0);
+
+    // Monta HTML
     let html = `<div class="meta">${meta}</div>`;
     html += `<table class="tabela-excel"><thead><tr>`;
 
-    colunas.forEach(c => html += `<th>${c}</th>`);
+    header.forEach(col => html += `<th>${col}</th>`);
     html += `</tr></thead><tbody>`;
 
-    dados.forEach(l => {
-        if (!l.includes("|")) return;
-
-        let partes = l.replace(/\|/g, " ").trim().split(/\s+/);
-
-        if (partes.length === colunas.length) {
-            html += "<tr>";
-            partes.forEach((p) => {
-                if (p.match(/^[0-9\.,]+$/)) html += `<td class="num">${formatarNumero(p)}</td>`;
-                else html += `<td>${p}</td>`;
-            });
-            html += "</tr>";
-        }
+    dados.forEach(cols => {
+        html += "<tr>";
+        cols.forEach(value => {
+            if (value.match(/^[0-9\.,]+$/)) {
+                html += `<td class="num">${formatarNumero(value)}</td>`;
+            } else {
+                html += `<td>${value}</td>`;
+            }
+        });
+        html += "</tr>";
     });
 
     html += "</tbody></table>";
