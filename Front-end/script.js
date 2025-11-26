@@ -1,128 +1,67 @@
-// URL da API hospedada no Render
-const API_BASE_URL = 'https://chatbot-telemetria.onrender.com';
+/* ================= CONFIG ================= */
+const API_BASE_URL = "https://chatbot-telemetria.onrender.com";
 
-/**
- * Função principal para consultar a API Flask
- */
-async function consultar(tipo) {
-    const chapa = document.getElementById('chapa').value.trim();
-    const data = document.getElementById('data').value.trim();
-    const resultadoDiv = document.getElementById('resultado');
+/* ---------- Tema ---------- */
+document.getElementById("themeToggle").addEventListener("click", () => {
+    document.body.classList.toggle("light");
+});
 
-    if (!chapa || !data) {
-        resultadoDiv.innerHTML = `<p class="erro">❌ Preencha RE/Chapa e Data.</p>`;
-        return;
-    }
+/* ---------- Helpers ---------- */
+function appendMessage(text, who = "bot", html = false) {
+    const chat = document.getElementById("chat");
 
-    resultadoDiv.innerHTML = `<p class="carregando">⏳ Consultando servidor...</p>`;
+    const el = document.createElement("div");
+    el.className = "msg " + (who === "user" ? "user" : "bot");
 
-    const url = `${API_BASE_URL}/${tipo}?re=${chapa}&data=${data}`;
+    if (html) el.innerHTML = text;
+    else el.textContent = text;
 
-    try {
-        const response = await fetch(url);
+    const time = document.createElement("span");
+    time.className = "time";
+    time.textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    el.appendChild(time);
 
-        if (!response.ok) {
-            const err = await response.json();
-            resultadoDiv.innerHTML = `
-                <p class="erro">🚨 Erro (${response.status})</p>
-                <p>${err.mensagem || err.erro}</p>
-            `;
-            return;
-        }
-
-        const json = await response.json();
-        const texto = json.resultado;
-
-        // Converte tabela
-        const htmlTabela = gerarTabelaHTML(texto);
-
-        resultadoDiv.innerHTML = `
-            <h3 class="ok">✅ Consulta de ${tipo} concluída</h3>
-            ${htmlTabela}
-        `;
-
-    } catch (error) {
-        resultadoDiv.innerHTML = `
-            <p class="erro">⚠️ Não foi possível conectar à API.</p>
-            <p style="font-size: 0.8em;">Detalhe: ${error.message}</p>
-        `;
-    }
+    chat.appendChild(el);
+    chat.scrollTop = chat.scrollHeight;
 }
 
-/**
- * Conversor universal - transforma Markdown bagunçado em tabela HTML
- * Funciona mesmo sem pipes "|"
- */
+function formatarNumero(n) {
+    const clean = String(n).replace(/\./g, "").replace(/,/g, ".");
+    const num = Number(clean);
+    return isNaN(num) ? n : num.toLocaleString("pt-BR");
+}
+
+/* ---------- Converte Markdown → Tabela HTML ---------- */
 function gerarTabelaHTML(md) {
+    if (!md) return md;
+
     const linhas = md.split("\n").map(l => l.trim()).filter(l => l !== "");
 
-    // IDENTIFICA CABEÇALHO
-    const idxCabecalho = linhas.findIndex(l =>
-        l.includes("|") || l.split(" ").filter(x => x).length >= 4
-    );
+    const idxCab = linhas.findIndex(l => l.includes("|"));
+    if (idxCab === -1) return `<pre>${md}</pre>`;
 
-    if (idxCabecalho === -1) return md;
+    const meta = linhas.slice(0, idxCab).join("<br>");
+    const header = linhas[idxCab];
+    const dados = linhas.slice(idxCab + 2);
 
-    const meta = linhas.slice(0, idxCabecalho).join("<br>");
+    const colunas = header.replace(/\|/g, " ").trim().split(/\s+/);
 
-    let header = linhas[idxCabecalho];
-    let dados = linhas.slice(idxCabecalho + 1);
+    let html = `<div class="meta">${meta}</div>`;
+    html += `<table class="tabela-excel"><thead><tr>`;
 
-    // Se o cabeçalho não tem pipes, adiciona
-    if (!header.includes("|")) {
-        const partes = header.split(" ").filter(x => x);
-        header = "| " + partes.join(" | ") + " |";
-    }
+    colunas.forEach(c => html += `<th>${c}</th>`);
+    html += `</tr></thead><tbody>`;
 
-    // Extrair colunas
-    const colunas = header
-        .replace(/\*/g, "")
-        .replace(/\|/g, " ")
-        .trim()
-        .split(/\s+/);
+    dados.forEach(l => {
+        if (!l.includes("|")) return;
 
-    let html = `
-        <div class="meta">${meta}</div>
-        <table class="tabela-excel">
-            <thead><tr>
-                ${colunas.map(c => `<th>${c}</th>`).join("")}
-            </tr></thead>
-            <tbody>
-    `;
-
-    // CONVERTE LINHAS EM TABELA — mesmo sem pipes
-    dados.forEach(linha => {
-        if (linha.includes("---")) return; // ignora linhas de separador
-
-        let partes;
-
-        if (linha.includes("|")) {
-            partes = linha.replace(/\|/g, " ").split(" ").filter(x => x);
-        } else {
-            partes = linha.split(" ").filter(x => x);
-        }
-
-        // Ajuste se vier mais dados que colunas → juntar o meio (nome do evento)
-        if (partes.length > colunas.length) {
-            partes = [
-                partes[0],                             // Tipo
-                partes.slice(1, partes.length - 2).join(" "), // Nome do evento
-                partes[partes.length - 2],             // Quantidade
-                partes[partes.length - 1]              // Pontos
-            ];
-        }
+        let partes = l.replace(/\|/g, " ").trim().split(/\s+/);
 
         if (partes.length === colunas.length) {
             html += "<tr>";
-            partes.forEach((p, i) => {
-                const limp = p.replace(/\*/g, "");
-
-                // Números formatados
-                if (!isNaN(limp.replace(".", "").replace(",", ""))) {
-                    html += `<td class="num">${formatarNumero(limp)}</td>`;
-                } else {
-                    html += `<td>${limp}</td>`;
-                }
+            partes.forEach((p) => {
+                if (p.match(/^[0-9\.,]+$/)) html += `<td class="num">${formatarNumero(p)}</td>`;
+                else html += `<td>${p}</td>`;
             });
             html += "</tr>";
         }
@@ -132,9 +71,57 @@ function gerarTabelaHTML(md) {
     return html;
 }
 
-/**
- * Formata números (1000 → 1.000)
- */
-function formatarNumero(n) {
-    return Number(n.replace(",", ".")).toLocaleString("pt-BR");
+/* ---------- Chamada API ---------- */
+async function consultar(tipo, re, data) {
+    appendMessage(`${tipo.toUpperCase()} • RE:${re} • ${data}`, "user");
+
+    appendMessage(`⏳ Consultando ${tipo}...`, "bot");
+
+    try {
+        const url = `${API_BASE_URL}/${tipo}?re=${encodeURIComponent(re)}&data=${encodeURIComponent(data)}`;
+        const resp = await fetch(url);
+
+        if (!resp.ok) {
+            const err = await resp.json();
+            appendMessage(`❌ Erro: ${err.mensagem || err.erro}`, "bot");
+            return;
+        }
+
+        const json = await resp.json();
+        const msg = gerarTabelaHTML(json.resultado);
+        appendMessage(msg, "bot", true);
+
+    } catch (e) {
+        appendMessage(`⚠️ Erro: ${e.message}`, "bot");
+    }
 }
+
+/* ---------- Botões ---------- */
+document.getElementById("btnEventos").addEventListener("click", () => {
+    const re = document.getElementById("inpRe").value.trim();
+    const data = document.getElementById("inpDate").value;
+
+    if (!re || !data) return appendMessage("❌ Preencha RE e Data", "bot");
+
+    consultar("eventos", re, formatarData(data));
+});
+
+document.getElementById("btnMetricas").addEventListener("click", () => {
+    const re = document.getElementById("inpRe").value.trim();
+    const data = document.getElementById("inpDate").value;
+
+    if (!re || !data) return appendMessage("❌ Preencha RE e Data", "bot");
+
+    consultar("metricas", re, formatarData(data));
+});
+
+/* ---------- Util ---------- */
+function formatarData(yyyyMMdd) {
+    const [y, m, d] = yyyyMMdd.split("-");
+    return `${d}/${m}/${y}`;
+}
+
+/* Mensagem inicial */
+setTimeout(() => {
+    appendMessage("Olá! Informe RE + Data e clique em Eventos ou Métricas.", "bot");
+}, 300);

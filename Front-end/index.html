@@ -1,41 +1,55 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telemetria | Consulta de Dados</title>
-    
-    <link rel="stylesheet" href="style.css"> 
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Chatbot Telemetria — WhatsApp UI</title>
+
+  <!-- Fonte -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- CSS externo -->
+  <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-    <div class="app-container">
+<div class="app" id="app">
+  <header class="header">
+    <div class="avatar">CT</div>
+    <div style="flex:1">
+      <div class="title">Chat Telemetria</div>
+      <div class="subtitle small">Estilo WhatsApp — Mobile</div>
+    </div>
+    <div class="header-controls">
+      <button class="btn-icon" id="themeToggle" title="Alternar tema">🌓</button>
+    </div>
+  </header>
 
-        <div class="header">
-            <h1>Consulta de <br> <span>Motorista RE</span></h1>
-            
-            <div class="icon" style="font-size: 24px;">☰</div> 
-        </div>
+  <main class="chat" id="chat">
+      <div class="meta small" style="text-align:center;">
+        Envie "eventos" ou "metricas" com RE e Data<br>ou use os botões abaixo.
+      </div>
+  </main>
 
-        <div class="search-bar">
-            
-            <div class="input-group">
-                <input type="text" id="chapa" placeholder="Número do RE (Chapa)" required>
-                <input type="text" id="data" placeholder="Data (DD/MM/YYYY)" required>
-            </div>
-            
-            <div class="action-buttons">
-                <button onclick="consultar('eventos')">Eventos Detalhados</button>
-                <button onclick="consultar('metricas')">Resumo de Métricas</button>
-            </div>
-        </div>
-        
-        <h2>Resultados</h2>
-        <div id="resultado">
-            <p>Selecione o RE, a data e clique em uma das opções acima para buscar os dados na API.</p>
-        </div>
-        
+  <footer class="composer">
+    <div class="inputs">
+      <div class="field" style="flex:1;">
+        <input id="inpRe" type="text" placeholder="RE / Chapa" aria-label="RE" />
+      </div>
+      <div class="field">
+        <input id="inpDate" type="date" aria-label="Data" />
+      </div>
     </div>
 
-    <script src="script.js"></script> 
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <button class="btn-alt" id="btnEventos">Eventos</button>
+      <button class="btn-send" id="btnMetricas">Métricas</button>
+    </div>
+  </footer>
+</div>
+
+<!-- JS externo -->
+<script src="script.js"></script>
+
 </body>
 </html>

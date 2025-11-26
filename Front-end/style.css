@@ -1,187 +1,173 @@
-/* Importação de uma fonte moderna */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-
-/* --- Variáveis de Cor --- */
-:root {
-    --color-primary: #A020F0; /* Roxo principal */
-    --color-secondary: #C71585; /* Rosa/Magenta */
-    --color-background-dark: #000000;
-    --color-surface-dark: #1E1E1E;
-    --color-text-light: #F0F0F0;
-    --color-input-bg: #333333;
+/* ==================== VARIÁVEIS ==================== */
+:root{
+  --bg:#0b0b0b;
+  --surface:#121212;
+  --bubble-user:#075E54;
+  --bubble-bot:#1f2937;
+  --text-light:#eaeaea;
+  --muted:#9aa3ad;
+  --accent:#25D366;
+  --input-bg:#0e0e0e;
+  --danger:#ff6b6b;
+}
+body.light {
+  --bg:#f3f6f9;
+  --surface:#ffffff;
+  --bubble-user:#0b8f6b;
+  --bubble-bot:#f3f4f6;
+  --text-light:#111827;
+  --muted:#6b7280;
+  --input-bg:#ffffff;
 }
 
-/* --- Base --- */
-body {
-    background-color: var(--color-background-dark);
-    color: var(--color-text-light);
-    font-family: 'Inter', sans-serif;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
+/* ==================== BASE ==================== */
+html,body{
+  height:100%;
+  margin:0;
+  font-family:'Inter',system-ui;
+  background:var(--bg);
+  color:var(--text-light);
 }
 
-.app-container {
-    width: 100%;
-    max-width: 600px;
-    background-color: var(--color-surface-dark);
-    border-radius: 30px;
-    box-shadow: 0 0 50px rgba(0, 0, 0, 0.7);
-    padding: 30px 25px;
-    margin: 20px;
+.app{
+  max-width:420px;
+  height:100vh;
+  margin:0 auto;
+  display:flex;
+  flex-direction:column;
 }
 
-/* --- Cabeçalho --- */
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
+/* ==================== HEADER ==================== */
+.header{
+  background:var(--surface);
+  padding:12px 14px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.avatar{
+  width:44px;
+  height:44px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:linear-gradient(135deg,var(--bubble-user),var(--accent));
+  color:white;
+  font-weight:700;
+}
+.title{
+  font-weight:700;
+  font-size:1rem;
+}
+.subtitle{
+  font-size:0.8rem;
+  color:var(--muted);
+}
+.btn-icon{
+  background:transparent;
+  border:none;
+  color:var(--text-light);
+  padding:8px;
+  cursor:pointer;
 }
 
-.header h1 {
-    font-size: 1.8em;
-    font-weight: 700;
+/* ==================== CHAT ==================== */
+.chat{
+  flex:1;
+  overflow-y:auto;
+  padding:18px 12px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
 }
 
-.header span {
-    background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+.msg{
+  max-width:86%;
+  padding:10px 14px;
+  border-radius:18px;
+  line-height:1.35;
+  box-shadow:0 2px 0 rgba(0,0,0,0.15);
+}
+.msg.user{
+  align-self:flex-end;
+  background:var(--bubble-user);
+  color:white;
+  border-bottom-right-radius:4px;
+}
+.msg.bot{
+  align-self:flex-start;
+  background:var(--bubble-bot);
+  border-bottom-left-radius:4px;
+}
+.time{
+  display:block;
+  font-size:0.72rem;
+  color:var(--muted);
+  margin-top:6px;
+  text-align:right;
 }
 
-/* --- Inputs --- */
-.search-bar {
-    margin-bottom: 30px;
+/* ==================== TABLE ==================== */
+.tabela-excel{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:8px;
+  font-size:0.9rem;
+}
+.tabela-excel th{
+  background:rgba(255,255,255,0.04);
+  padding:8px;
+  font-size:0.78rem;
+  text-align:left;
+}
+.tabela-excel td{
+  padding:8px;
+  border-bottom:1px solid rgba(255,255,255,0.05);
+}
+.tabela-excel td.num{
+  text-align:right;
+}
+.tabela-excel td strong{
+  color:#6ee7b7;
 }
 
-.input-group {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
+/* ==================== INPUT AREA ==================== */
+.composer{
+  display:flex;
+  gap:8px;
+  padding:12px;
+  background:var(--surface);
+  border-top:1px solid rgba(255,255,255,0.05);
+}
+.inputs{
+  flex:1;
+  display:flex;
+  gap:8px;
+}
+.field input{
+  padding:10px 12px;
+  border:none;
+  border-radius:12px;
+  background:var(--input-bg);
+  color:var(--text-light);
+  font-size:0.95rem;
 }
 
-.input-group input {
-    flex-grow: 1;
-    padding: 12px 15px;
-    border: none;
-    border-radius: 12px;
-    background-color: var(--color-input-bg);
-    color: var(--color-text-light);
-    font-size: 1em;
+.btn-alt{
+  background:transparent;
+  border:1px solid rgba(255,255,255,0.1);
+  color:var(--text-light);
+  padding:8px 10px;
+  border-radius:10px;
+  cursor:pointer;
 }
-
-/* --- Botões --- */
-.action-buttons {
-    display: flex;
-    gap: 15px;
-    margin-bottom: 25px;
-}
-
-.action-buttons button {
-    flex-grow: 1;
-    padding: 15px;
-    border: none;
-    border-radius: 15px;
-    font-size: 1em;
-    font-weight: 600;
-    cursor: pointer;
-    transition: transform 0.2s;
-}
-
-.action-buttons button:nth-child(1) {
-    background: var(--color-primary);
-    color: white;
-}
-
-.action-buttons button:nth-child(2) {
-    background: var(--color-secondary);
-    color: white;
-}
-
-.action-buttons button:hover {
-    transform: scale(1.05);
-}
-
-/* --- Área de Resultados --- */
-#resultado {
-    margin-top: 25px;
-    padding: 20px;
-    border-radius: 20px;
-    background-color: #282828;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
-    font-size: 0.9em;
-    line-height: 1.4;
-    overflow-x: auto;
-    white-space: normal;
-}
-
-/* --- Texto de meta informações (Motorista / Data) --- */
-.meta {
-    font-weight: 600;
-    margin-bottom: 10px;
-    font-size: 0.95em;
-    color: #ddd;
-}
-
-/* --- Tabela estilo Excel --- */
-.tabela-excel {
-    width: 100%;
-    min-width: 550px;
-    border-collapse: collapse;
-    margin-top: 15px;
-    background-color: #1E1E1E;
-    border-radius: 12px;
-    overflow: hidden;
-}
-
-.tabela-excel th {
-    background-color: #383838;
-    padding: 10px 12px;
-    border-bottom: 2px solid #444;
-    color: var(--color-text-light);
-    font-size: 0.85em;
-    font-weight: 700;
-    text-transform: uppercase;
-}
-
-.tabela-excel td {
-    padding: 10px 12px;
-    border-bottom: 1px solid #444;
-    color: #EAEAEA;
-}
-
-/* Alternância de linhas */
-.tabela-excel tr:nth-child(even) {
-    background-color: #262626;
-}
-
-/* Colunas numéricas alinhadas à direita */
-.num {
-    text-align: right !important;
-}
-
-/* Destaque para TOTAl */
-.tabela-excel td strong {
-    color: #3CB371;
-    font-weight: 700;
-}
-
-/* --- Mensagens de status --- */
-.carregando {
-    color: #7B68EE;
-    font-weight: 600;
-}
-
-.erro {
-    color: #FF6347;
-    font-weight: 600;
-}
-
-.ok {
-    color: #3CB371;
-    font-weight: 600;
+.btn-send{
+  background:var(--accent);
+  border:none;
+  padding:10px 12px;
+  border-radius:12px;
+  color:#003218;
+  font-weight:700;
+  cursor:pointer;
 }
