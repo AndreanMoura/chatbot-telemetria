@@ -22,32 +22,42 @@ def formatar_numero(n):
 # FUNÇÃO: CONSULTAR EVENTOS DETALHADOS
 # ===============================================================
 def consultar_eventos_detalhados(chapa, data_input):
+    """
+    Consulta os eventos detalhados para uma chapa e uma data.
+    Compatível com o layout:
+    data | carro | chapa | nome | funcao | evento | quantidade
+    """
+    
+    # Validação da data
     try:
         data_consulta = datetime.strptime(data_input, "%d/%m/%Y").date()
     except ValueError:
         return f"❌ Data inválida: {data_input}. Use o formato DD/MM/YYYY."
 
+    # Validar existência do arquivo
     if not os.path.exists(CAMINHO_DO_ARQUIVO_DADOS):
         return f"🚨 Arquivo não encontrado: {CAMINHO_DO_ARQUIVO_DADOS}"
 
+    # Ler planilha
     try:
         df = pd.read_excel(CAMINHO_DO_ARQUIVO_DADOS, sheet_name=NOME_ABA, engine="openpyxl")
-        df.columns = df.columns.str.strip()
+        df.columns = df.columns.str.strip().str.lower()  # Normaliza colunas
     except Exception as e:
         return f"🚨 Erro ao ler a planilha: {e}"
 
-    # NOVO LAYOUT
+    # Validar colunas obrigatórias
     colunas_necessarias = ["data", "carro", "chapa", "nome", "funcao", "evento", "quantidade"]
     faltando = [c for c in colunas_necessarias if c not in df.columns]
     if faltando:
         return f"🚨 Colunas ausentes no arquivo: {faltando}"
 
-    # Normalização
-    df["data"] = pd.to_datetime(df["data"], dayfirst=True).dt.date
+    # Normalizar dados
+    df["data"] = pd.to_datetime(df["data"], dayfirst=True, errors="coerce").dt.date
     df["chapa"] = df["chapa"].astype(str).str.strip()
 
     chapa = str(chapa).strip()
 
+    # Filtrar
     df_filtrado = df[
         (df["chapa"] == chapa) &
         (df["data"] == data_consulta)
@@ -56,11 +66,11 @@ def consultar_eventos_detalhados(chapa, data_input):
     if df_filtrado.empty:
         return f"ℹ️ Nenhum evento encontrado para a chapa **{chapa}** na data {data_input}."
 
-    # Dados do motorista
+    # Pega dados do motorista
     nome = df_filtrado.iloc[0]["nome"]
     funcao = df_filtrado.iloc[0]["funcao"]
 
-    # Construir tabela Markdown
+    # Construir tabela em Markdown
     resultado = []
     resultado.append(f"👤 **Motorista:** {nome}")
     resultado.append(f"🆔 **Chapa:** {chapa}")
@@ -74,9 +84,16 @@ def consultar_eventos_detalhados(chapa, data_input):
 
     for _, row in df_filtrado.iterrows():
         evento = row["evento"]
-        qtd = formatar_numero(row["quantidade"])
-        total_qtd += int(float(row["quantidade"]))
-        resultado.append(f"| {evento} | {qtd} |")
+        qtd_raw = row["quantidade"]
+
+        try:
+            qtd_val = int(float(qtd_raw))
+            total_qtd += qtd_val
+            qtd_formatada = formatar_numero(qtd_val)
+        except:
+            qtd_formatada = str(qtd_raw)
+
+        resultado.append(f"| {evento} | {qtd_formatada} |")
 
     resultado.append(f"| **TOTAL** | **{formatar_numero(total_qtd)}** |")
 
@@ -86,6 +103,7 @@ def consultar_eventos_detalhados(chapa, data_input):
 # FUNÇÃO: CONSULTAR MÉTRICAS DO DIA
 # ===============================================================
 def buscar_metricas_do_dia(chapa, data_input):
+
     try:
         data_consulta = datetime.strptime(data_input, "%d/%m/%Y").date()
     except ValueError:
@@ -96,17 +114,17 @@ def buscar_metricas_do_dia(chapa, data_input):
 
     try:
         df = pd.read_excel(CAMINHO_DO_ARQUIVO_DADOS, sheet_name=NOME_ABA, engine="openpyxl")
-        df.columns = df.columns.str.strip()
+        df.columns = df.columns.str.strip().str.lower()
     except Exception as e:
         return f"🚨 Erro ao ler a planilha: {e}"
 
     colunas_necessarias = ["data", "chapa", "quantidade"]
-    if not all(c in df.columns for c in colunas_necessarias):
-        return f"🚨 Colunas necessárias ausentes: {colunas_necessarias}"
+    faltando = [c for c in colunas_necessarias if c not in df.columns]
+    if faltando:
+        return f"🚨 Colunas necessárias ausentes: {faltando}"
 
-    df["data"] = pd.to_datetime(df["data"], dayfirst=True).dt.date
+    df["data"] = pd.to_datetime(df["data"], dayfirst=True, errors="coerce").dt.date
     df["chapa"] = df["chapa"].astype(str).str.strip()
-
     chapa = str(chapa).strip()
 
     df_filtrado = df[
@@ -131,5 +149,5 @@ def buscar_metricas_do_dia(chapa, data_input):
 # TESTE LOCAL
 # ===============================================================
 if __name__ == "__main__":
-    print("🔍 Teste rápido: buscando eventos detalhados\n")
+    print("🔍 Teste rápido:\n")
     print(consultar_eventos_detalhados("19135", "01/11/2025"))
