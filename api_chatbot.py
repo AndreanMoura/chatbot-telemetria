@@ -2,20 +2,14 @@ import pandas as pd
 import os
 import openpyxl
 from datetime import datetime
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 
 # ===============================================================
-# APP DA API
+# APP FLASK
 # ===============================================================
-app = FastAPI()
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"], 
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app = Flask(__name__)
+CORS(app)
 
 # ===============================================================
 # CAMINHOS DAS BASES
@@ -72,7 +66,6 @@ def consultar_base_grupo(chapa):
 
     motorista = registro.iloc[0]
 
-    # Formatações
     try:
         mesano = pd.to_datetime(motorista.get("mesano")).strftime("%m/%Y")
     except:
@@ -139,11 +132,8 @@ def consultar_eventos_detalhados(chapa, data_input):
     if not os.path.exists(CAMINHO_TELEMETRIA):
         return f"🚨 Arquivo não encontrado: {CAMINHO_TELEMETRIA}"
 
-    try:
-        df = pd.read_excel(CAMINHO_TELEMETRIA, sheet_name=ABA_TELEMETRIA, engine="openpyxl")
-        df.columns = df.columns.str.strip().str.lower()
-    except Exception as e:
-        return f"🚨 Erro ao ler a planilha: {e}"
+    df = pd.read_excel(CAMINHO_TELEMETRIA, sheet_name=ABA_TELEMETRIA, engine="openpyxl")
+    df.columns = df.columns.str.strip().str.lower()
 
     df["data"] = pd.to_datetime(df["data"], dayfirst=True, errors="coerce").dt.date
     df["chapa"] = df["chapa"].astype(str).str.strip()
@@ -215,24 +205,36 @@ def buscar_metricas_do_dia(chapa, data_input):
     )
 
 # ===============================================================
-# ROTAS DA API (PARA O FRONT)
+# ROTAS DA API
 # ===============================================================
 
-@app.get("/")
+@app.route("/")
 def home():
-    return {"status": "online", "rotas": ["/grupo", "/eventos", "/metricas"]}
+    return jsonify({"status": "online", "rotas": ["/grupo", "/eventos", "/metricas"]})
 
-@app.get("/grupo")
-def api_grupo(re: str):
+@app.route("/grupo")
+def api_grupo():
+    re = request.args.get("re")
     resultado = consultar_base_grupo(re)
-    return {"resultado": resultado}
+    return jsonify({"resultado": resultado})
 
-@app.get("/eventos")
-def api_eventos(re: str, data: str):
+@app.route("/eventos")
+def api_eventos():
+    re = request.args.get("re")
+    data = request.args.get("data")
     resultado = consultar_eventos_detalhados(re, data)
-    return {"resultado": resultado}
+    return jsonify({"resultado": resultado})
 
-@app.get("/metricas")
-def api_metricas(re: str, data: str):
+@app.route("/metricas")
+def api_metricas():
+    re = request.args.get("re")
+    data = request.args.get("data")
     resultado = buscar_metricas_do_dia(re, data)
-    return {"resultado": resultado}
+    return jsonify({"resultado": resultado})
+
+
+# ===============================================================
+# LOCAL (opcional)
+# ===============================================================
+if __name__ == "__main__":
+    app.run(debug=True)
