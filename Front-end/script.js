@@ -69,7 +69,7 @@ function gerarTabelaHTML(md) {
     dados.forEach(cols => {
         html += "<tr>";
         cols.forEach(value => {
-            if (value.match(/^[0-9\.,]+$/)) {
+            if (value.match(/^[0-9\.,-]+$/)) {
                 html += `<td class="num">${formatarNumero(value)}</td>`;
             } else {
                 html += `<td>${value}</td>`;
@@ -85,7 +85,6 @@ function gerarTabelaHTML(md) {
 /* ---------- Chamada API ---------- */
 async function consultar(tipo, re, data) {
     appendMessage(`${tipo.toUpperCase()} • RE:${re} • ${data}`, "user");
-
     appendMessage(`⏳ Consultando ${tipo}...`, "bot");
 
     try {
@@ -112,7 +111,8 @@ document.getElementById("btnEventos").addEventListener("click", () => {
     const re = document.getElementById("inpRe").value.trim();
     const data = document.getElementById("inpDate").value;
 
-    if (!re || !data) return appendMessage("❌ Preencha RE e Data", "bot");
+    if (!re || !data)
+        return appendMessage("❌ Preencha RE e Data", "bot");
 
     consultar("eventos", re, formatarData(data));
 });
@@ -121,9 +121,31 @@ document.getElementById("btnMetricas").addEventListener("click", () => {
     const re = document.getElementById("inpRe").value.trim();
     const data = document.getElementById("inpDate").value;
 
-    if (!re || !data) return appendMessage("❌ Preencha RE e Data", "bot");
+    if (!re || !data)
+        return appendMessage("❌ Preencha RE e Data", "bot");
 
     consultar("metricas", re, formatarData(data));
+});
+
+/* ---------- Botão Grupo / Performance ---------- */
+document.getElementById("btnGrupo").addEventListener("click", () => {
+    const re = document.getElementById("inpRe").value.trim();
+
+    if (!re)
+        return appendMessage("❌ Preencha o RE / Chapa", "bot");
+
+    appendMessage(`GRUPO • RE:${re}`, "user");
+    appendMessage(`⏳ Consultando grupo/performance...`, "bot");
+
+    fetch(`${API_BASE_URL}/grupo?re=${encodeURIComponent(re)}`)
+        .then(resp => resp.json())
+        .then(json => {
+            const msg = gerarTabelaHTML(json.resultado);
+            appendMessage(msg, "bot", true);
+        })
+        .catch(e => {
+            appendMessage(`⚠️ Erro: ${e.message}`, "bot");
+        });
 });
 
 /* ---------- Util ---------- */
@@ -132,7 +154,15 @@ function formatarData(yyyyMMdd) {
     return `${d}/${m}/${y}`;
 }
 
-/* Mensagem inicial */
+/* ---------- Mensagem inicial ---------- */
 setTimeout(() => {
-    appendMessage("Olá! Informe RE + Data e clique em Eventos ou Métricas.", "bot");
+    appendMessage(
+        "📋 MENU DE CONSULTA<br>" +
+        "1️⃣ Grupo / Performance<br>" +
+        "2️⃣ Eventos<br>" +
+        "3️⃣ Métricas<br><br>" +
+        "Informe RE e Data (se necessário) e clique no botão desejado.",
+        "bot",
+        true
+    );
 }, 300);

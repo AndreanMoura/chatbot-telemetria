@@ -3,8 +3,11 @@ import re
 from datetime import datetime
 
 # Importa as funções corretas do módulo de consulta
-# 👉 Usa "as" para renomear a função e manter compatibilidade
 from consulta_motorista import consultar_eventos_detalhados as buscar_eventos_detalhados, buscar_metricas_do_dia
+
+# Importa a função da Base Grupo
+from api_chatbot import resumo_motorista
+
 
 # ============================================================
 # === FUNÇÃO AUXILIAR: COLETAR E VALIDAR DATA ================
@@ -90,14 +93,22 @@ def Processar_resposta(Resposta, nome, chapa):
         print("\n" + "\n".join(resposta_final) + "\n")
         return True
 
-    # === OPÇÃO 4: SAIR ===
+    # === OPÇÃO 4: DADOS DA BASE DE GRUPO ===
     elif Resposta == '4':
+        print(f'\n>> {nome}, buscando seus dados cadastrais na Base de Grupo...\n')
+        resultado = resumo_motorista(chapa)
+        print(resultado)
+        print("")
+        return True
+
+    # === OPÇÃO 5: SAIR ===
+    elif Resposta == '5':
         print(f'\n>> Obrigado, {nome}! Encerrando o sistema.')
         return False
 
     # === OPÇÃO INVÁLIDA ===
     else:
-        print(f'\n>> Opção "{Resposta}" inválida. Escolha [1], [2], [3] ou [4].')
+        print(f'\n>> Opção "{Resposta}" inválida. Escolha [1], [2], [3], [4] ou [5].')
         return True
 
 
@@ -117,8 +128,9 @@ def start():
             f' [1] - Todos os Eventos e Pontos de uma DATA ESPECÍFICA.\n'
             f' [2] - Suas Métricas Diárias (Quantidade e Pontos) de uma DATA ESPECÍFICA.\n'
             f' [3] - Relatório Completo (Eventos + Métricas).\n'
-            f' [4] - Sair\n'
-            f' Digite a opção (1, 2, 3 ou 4): '
+            f' [4] - Consultar Dados de Grupo (Base Cadastral).\n'
+            f' [5] - Sair.\n'
+            f' Digite a opção (1, 2, 3, 4 ou 5): '
         )
 
         if not Processar_resposta(Resposta, nome, chapa):
@@ -132,4 +144,3 @@ def start():
 # ============================================================
 if __name__ == "__main__":
     start()
-
