@@ -2,6 +2,20 @@ import pandas as pd
 import os
 import openpyxl
 from datetime import datetime
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+# ===============================================================
+# APP DA API
+# ===============================================================
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], 
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ===============================================================
 # CAMINHOS DAS BASES
@@ -16,7 +30,6 @@ ABA_BASE_GRUPO = "Base detalhamento"
 CAMINHO_TELEMETRIA = os.path.join(BASE_DIR, "Telemetria.xlsx")
 ABA_TELEMETRIA = "Telemetria"
 
-
 # ===============================================================
 # FUNÇÃO AUXILIAR – FORMATAÇÃO
 # ===============================================================
@@ -25,7 +38,6 @@ def formatar_numero(n):
         return f"{int(float(n)):,}".replace(",", ".")
     except:
         return n
-
 
 # ===============================================================
 # CONSULTA - BASE DE GRUPO
@@ -40,7 +52,6 @@ def carregar_base_grupo():
         return df, None
     except Exception as e:
         return None, f"🚨 Erro ao ler a base: {e}"
-
 
 def consultar_base_grupo(chapa):
     df, erro = carregar_base_grupo()
@@ -98,7 +109,7 @@ def consultar_base_grupo(chapa):
         performance = motorista.get("performance", "N/D")
 
     return (
-        f"\n✅ BASE DE GRUPO - Dados do Motorista\n\n"
+        f"✅ BASE DE GRUPO - Dados do Motorista\n\n"
         f"| Campo | Valor |\n"
         f"| :--- | :--- |\n"
         f"| Chapa | {chapa} |\n"
@@ -115,16 +126,15 @@ def consultar_base_grupo(chapa):
         f"| Performance | {performance} |\n"
     )
 
-
 # ===============================================================
-# CONSULTAS - TELEMETRIA
+# CONSULTA - EVENTOS
 # ===============================================================
 def consultar_eventos_detalhados(chapa, data_input):
 
     try:
         data_consulta = datetime.strptime(data_input, "%d/%m/%Y").date()
     except ValueError:
-        return f"❌ Data inválida: {data_input}. Use o formato DD/MM/YYYY."
+        return f"❌ Data inválida: {data_input}. Use DD/MM/YYYY."
 
     if not os.path.exists(CAMINHO_TELEMETRIA):
         return f"🚨 Arquivo não encontrado: {CAMINHO_TELEMETRIA}"
@@ -135,16 +145,8 @@ def consultar_eventos_detalhados(chapa, data_input):
     except Exception as e:
         return f"🚨 Erro ao ler a planilha: {e}"
 
-    colunas_necessarias = ["data", "carro", "chapa", "nome", "funcao", "evento", "quantidade"]
-    faltando = [c for c in colunas_necessarias if c not in df.columns]
-
-    if faltando:
-        return f"🚨 Colunas ausentes no arquivo: {faltando}"
-
     df["data"] = pd.to_datetime(df["data"], dayfirst=True, errors="coerce").dt.date
     df["chapa"] = df["chapa"].astype(str).str.strip()
-
-    chapa = str(chapa).strip()
 
     df_filtrado = df[(df["chapa"] == chapa) & (df["data"] == data_consulta)]
 
@@ -154,14 +156,15 @@ def consultar_eventos_detalhados(chapa, data_input):
     nome = df_filtrado.iloc[0]["nome"]
     funcao = df_filtrado.iloc[0]["funcao"]
 
-    resultado = []
-    resultado.append(f"👤 Motorista: {nome}")
-    resultado.append(f"🆔 Chapa: {chapa}")
-    resultado.append(f"💼 Função: {funcao}")
-    resultado.append(f"📅 Data: {data_input}")
-    resultado.append("")
-    resultado.append("| Evento | Quantidade |")
-    resultado.append("| :--- | :---: |")
+    resultado = [
+        f"👤 Motorista: {nome}",
+        f"🆔 Chapa: {chapa}",
+        f"💼 Função: {funcao}",
+        f"📅 Data: {data_input}",
+        "",
+        "| Evento | Quantidade |",
+        "| :--- | :---: |"
+    ]
 
     total_qtd = 0
 
@@ -176,26 +179,24 @@ def consultar_eventos_detalhados(chapa, data_input):
 
     return "\n".join(resultado)
 
-
+# ===============================================================
+# CONSULTA - MÉTRICAS
+# ===============================================================
 def buscar_metricas_do_dia(chapa, data_input):
 
     try:
         data_consulta = datetime.strptime(data_input, "%d/%m/%Y").date()
     except ValueError:
-        return f"❌ Data inválida: {data_input}. Use o formato DD/MM/YYYY."
+        return f"❌ Data inválida: {data_input}. Use DD/MM/YYYY."
 
     if not os.path.exists(CAMINHO_TELEMETRIA):
         return f"🚨 Arquivo não encontrado: {CAMINHO_TELEMETRIA}"
 
-    try:
-        df = pd.read_excel(CAMINHO_TELEMETRIA, sheet_name=ABA_TELEMETRIA, engine="openpyxl")
-        df.columns = df.columns.str.strip().str.lower()
-    except Exception as e:
-        return f"🚨 Erro ao ler a planilha: {e}"
+    df = pd.read_excel(CAMINHO_TELEMETRIA, sheet_name=ABA_TELEMETRIA, engine="openpyxl")
+    df.columns = df.columns.str.strip().str.lower()
 
     df["data"] = pd.to_datetime(df["data"], dayfirst=True, errors="coerce").dt.date
     df["chapa"] = df["chapa"].astype(str).str.strip()
-    chapa = str(chapa).strip()
 
     df_filtrado = df[(df["chapa"] == chapa) & (df["data"] == data_consulta)]
 
@@ -205,7 +206,7 @@ def buscar_metricas_do_dia(chapa, data_input):
     qtd_total = int(df_filtrado["quantidade"].astype(float).sum())
 
     return (
-        f"\n📊 MÉTRICA DO DIA\n\n"
+        f"📊 MÉTRICA DO DIA\n\n"
         f"| Campo | Valor |\n"
         f"| :--- | :---: |\n"
         f"| Chapa | {chapa} |\n"
@@ -213,47 +214,25 @@ def buscar_metricas_do_dia(chapa, data_input):
         f"| Total de Eventos | {formatar_numero(qtd_total)} |\n"
     )
 
-
 # ===============================================================
-# MENU PRINCIPAL
+# ROTAS DA API (PARA O FRONT)
 # ===============================================================
-def menu():
-    while True:
-        print("\n==================================")
-        print("        MENU DE CONSULTA")
-        print("==================================")
-        print("1 - Consultar Grupo, informação de performance e outros")
-        print("2 - Consultar eventos da telemetria")
-        print("3 - Consultar Total do dia")
-        print("0 - Sair")
-        print("==================================")
 
-        opcao = input("Escolha uma opção: ").strip()
+@app.get("/")
+def home():
+    return {"status": "online", "rotas": ["/grupo", "/eventos", "/metricas"]}
 
-        if opcao == "1":
-            chapa = input("Digite a chapa: ").strip()
-            print(consultar_base_grupo(chapa))
+@app.get("/grupo")
+def api_grupo(re: str):
+    resultado = consultar_base_grupo(re)
+    return {"resultado": resultado}
 
-        elif opcao == "2":
-            chapa = input("Digite a chapa: ").strip()
-            data = input("Digite a data (DD/MM/AAAA): ").strip()
-            print(consultar_eventos_detalhados(chapa, data))
+@app.get("/eventos")
+def api_eventos(re: str, data: str):
+    resultado = consultar_eventos_detalhados(re, data)
+    return {"resultado": resultado}
 
-        elif opcao == "3":
-            chapa = input("Digite a chapa: ").strip()
-            data = input("Digite a data (DD/MM/AAAA): ").strip()
-            print(buscar_metricas_do_dia(chapa, data))
-
-        elif opcao == "0":
-            print("✅ Sistema finalizado.")
-            break
-
-        else:
-            print("❌ Opção inválida. Tente novamente.")
-
-
-# ===============================================================
-# EXECUÇÃO PRINCIPAL
-# ===============================================================
-if __name__ == "__main__":
-    menu()
+@app.get("/metricas")
+def api_metricas(re: str, data: str):
+    resultado = buscar_metricas_do_dia(re, data)
+    return {"resultado": resultado}
