@@ -1,153 +1,182 @@
 import pandas as pd
-from datetime import datetime
-import os
+import requests
 
 # ===============================================================
-# CONFIGURAÇÃO DO ARQUIVO (CAMINHO RELATIVO)
+# CONFIGURAÇÃO DA API
 # ===============================================================
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-CAMINHO_DO_ARQUIVO_DADOS = os.path.join(BASE_DIR, "Telemetria.xlsx")
-NOME_ABA = "Telemetria"
+API_URL = "https://siannet.gestaosian.com/api/EscaladoInformacao?empresa=2&data_inicio=01/12/2025&data_fim=30/12/2025"
+API_USER = "gds"
+API_PASS = "SUA_SENHA"
+TIMEOUT_API = 600  # 10 minutos
 
-# ===============================================================
-# FUNÇÃO AUXILIAR – FORMATAÇÃO DE NÚMEROS
-# ===============================================================
-def formatar_numero(n):
-    try:
-        return f"{int(float(n)):,}".replace(",", ".")
-    except:
-        return n
 
 # ===============================================================
-# FUNÇÃO: CONSULTAR EVENTOS DETALHADOS
+# FUNÇÃO: BUSCAR DADOS DA API
 # ===============================================================
-def consultar_eventos_detalhados(chapa, data_input):
-    """
-    Consulta os eventos detalhados para uma chapa e uma data.
-    Compatível com o layout:
-    data | carro | chapa | nome | funcao | evento | quantidade
-    """
-    
-    # Validação da data
-    try:
-        data_consulta = datetime.strptime(data_input, "%d/%m/%Y").date()
-    except ValueError:
-        return f"❌ Data inválida: {data_input}. Use o formato DD/MM/YYYY."
+def carregar_motoristas_da_api():
 
-    # Validar existência do arquivo
-    if not os.path.exists(CAMINHO_DO_ARQUIVO_DADOS):
-        return f"🚨 Arquivo não encontrado: {CAMINHO_DO_ARQUIVO_DADOS}"
-
-    # Ler planilha
-    try:
-        df = pd.read_excel(CAMINHO_DO_ARQUIVO_DADOS, sheet_name=NOME_ABA, engine="openpyxl")
-        df.columns = df.columns.str.strip().str.lower()  # Normaliza colunas
-    except Exception as e:
-        return f"🚨 Erro ao ler a planilha: {e}"
-
-    # Validar colunas obrigatórias
-    colunas_necessarias = ["data", "carro", "chapa", "nome", "funcao", "evento", "quantidade"]
-    faltando = [c for c in colunas_necessarias if c not in df.columns]
-    if faltando:
-        return f"🚨 Colunas ausentes no arquivo: {faltando}"
-
-    # Normalizar dados
-    df["data"] = pd.to_datetime(df["data"], dayfirst=True, errors="coerce").dt.date
-    df["chapa"] = df["chapa"].astype(str).str.strip()
-
-    chapa = str(chapa).strip()
-
-    # Filtrar
-    df_filtrado = df[
-        (df["chapa"] == chapa) &
-        (df["data"] == data_consulta)
-    ]
-
-    if df_filtrado.empty:
-        return f"ℹ️ Nenhum evento encontrado para a chapa {chapa} na data {data_input}."
-
-    # Pega dados do motorista
-    nome = df_filtrado.iloc[0]["nome"]
-    funcao = df_filtrado.iloc[0]["funcao"]
-
-    # Construir tabela em Markdown
-    resultado = []
-    resultado.append(f"👤 Motorista: {nome}")
-    resultado.append(f"🆔 Chapa: {chapa}")
-    resultado.append(f"💼 Função: {funcao}")
-    resultado.append(f"📅 Data: {data_input}")
-    resultado.append("")
-    resultado.append("| Evento | Quantidade |")
-    resultado.append("| :--- | :---: |")
-
-    total_qtd = 0
-
-    for _, row in df_filtrado.iterrows():
-        evento = row["evento"]
-        qtd_raw = row["quantidade"]
-
-        try:
-            qtd_val = int(float(qtd_raw))
-            total_qtd += qtd_val
-            qtd_formatada = formatar_numero(qtd_val)
-        except:
-            qtd_formatada = str(qtd_raw)
-
-        resultado.append(f"| {evento} | {qtd_formatada} |")
-
-    resultado.append(f"| Total Dia | {formatar_numero(total_qtd)} |")
-
-    return "\n".join(resultado)
-
-# ===============================================================
-# FUNÇÃO: CONSULTAR MÉTRICAS DO DIA
-# ===============================================================
-def buscar_metricas_do_dia(chapa, data_input):
-
-    try:
-        data_consulta = datetime.strptime(data_input, "%d/%m/%Y").date()
-    except ValueError:
-        return f"❌ Data inválida: {data_input}. Use o formato DD/MM/YYYY."
-
-    if not os.path.exists(CAMINHO_DO_ARQUIVO_DADOS):
-        return f"🚨 Arquivo não encontrado: {CAMINHO_DO_ARQUIVO_DADOS}"
-
-    try:
-        df = pd.read_excel(CAMINHO_DO_ARQUIVO_DADOS, sheet_name=NOME_ABA, engine="openpyxl")
-        df.columns = df.columns.str.strip().str.lower()
-    except Exception as e:
-        return f"🚨 Erro ao ler a planilha: {e}"
-
-    colunas_necessarias = ["data", "chapa", "quantidade"]
-    faltando = [c for c in colunas_necessarias if c not in df.columns]
-    if faltando:
-        return f"🚨 Colunas necessárias ausentes: {faltando}"
-
-    df["data"] = pd.to_datetime(df["data"], dayfirst=True, errors="coerce").dt.date
-    df["chapa"] = df["chapa"].astype(str).str.strip()
-    chapa = str(chapa).strip()
-
-    df_filtrado = df[
-        (df["chapa"] == chapa) &
-        (df["data"] == data_consulta)
-    ]
-
-    if df_filtrado.empty:
-        return f"ℹ️ Nenhum registro encontrado para a chapa {chapa} na data {data_input}."
-
-    qtd_total = int(df_filtrado["quantidade"].astype(float).sum())
-
-    return (
-        f"👤 Chapa: {chapa}\n"
-        f"📅 Data consultada: {data_input}\n\n"
-        f"| Métrica | Valor |\n"
-        f"| :--- | :---: |\n"
-        f"| Quantidade Total | {formatar_numero(qtd_total)} |"
+    response = requests.get(
+        API_URL,
+        auth=(API_USER, API_PASS),
+        timeout=TIMEOUT_API
     )
+
+    response.raise_for_status()
+
+    retorno = response.json()
+
+    # Esperado: { sucesso, param, dados }
+    if "dados" not in retorno or not isinstance(retorno["dados"], list):
+        raise ValueError(
+            f"Formato inesperado da API. Chaves recebidas: {list(retorno.keys())}"
+        )
+
+    df = pd.DataFrame(retorno["dados"])
+
+    if df.empty:
+        return df
+
+    # Normalizar colunas
+    df.columns = df.columns.str.lower().str.strip()
+
+    return df
+
+
+# ===============================================================
+# FUNÇÃO: CONSULTAR MOTORISTA POR CHAPA (RETORNA JSON)
+# ===============================================================
+def consultar_motorista_por_chapa(chapa):
+
+    try:
+        df = carregar_motoristas_da_api()
+    except Exception as e:
+        return {"erro": f"Erro ao consultar API: {e}"}
+
+    if df.empty:
+        return {"mensagem": "Nenhum dado retornado pela API"}
+
+    # Normalizar chapa
+    chapa = str(chapa).zfill(9)
+    df["chapa"] = df["chapa"].astype(str).str.zfill(9)
+
+    motorista = df[df["chapa"] == chapa]
+
+    if motorista.empty:
+        return {"mensagem": f"Nenhum motorista encontrado para a chapa {chapa}"}
+
+    row = motorista.iloc[0]
+
+    return {
+        "id": row.get("id"),
+        "matricula": row.get("matricula"),
+        "chapa": row.get("chapa"),
+        "nome": row.get("nome"),
+        "sexo": row.get("sexo"),
+        "idade": row.get("idade"),
+        "admissao": row.get("admissao"),
+        "demissao": row.get("demissao"),
+        "funcao_codigo": row.get("funcao"),
+        "funcao_nome": row.get("nome_funcao"),
+        "empresa_id": row.get("id_empresa"),
+        "folga": row.get("folga"),
+        "ultima_folga": row.get("ult_folga"),
+        "ultima_folga_dom": row.get("ult_folga_dom"),
+        "turno": row.get("turno"),
+        "garagem": row.get("garagem"),
+        "equipamento": row.get("equipamento"),
+        "inicio": row.get("inicio"),
+        "fim": row.get("fim"),
+        "situacao": row.get("situacao"),
+        "cnh_vencimento": row.get("cnh_venc"),
+        "capacitacao": row.get("capacitacao"),
+        "monitor": {
+            "registro": row.get("monitor_desemp_re"),
+            "nome": row.get("monitor_desemp_nome"),
+            "agrupamento": row.get("monitor_desemp_agrup"),
+            "foto": row.get("monitor_desemp_foto")
+        },
+        "fotos": {
+            "motorista": row.get("escalado_foto")
+        }
+    }
+
+
+# ===============================================================
+# FUNÇÃO: FORMATAR RESPOSTA PARA CHATBOT
+# ===============================================================
+def formatar_motorista_para_chat(dados):
+
+    if not isinstance(dados, dict):
+        return "🚨 Erro ao processar dados do motorista."
+
+    if "erro" in dados:
+        return f"🚨 {dados['erro']}"
+
+    if "mensagem" in dados:
+        return f"ℹ️ {dados['mensagem']}"
+
+    linhas = []
+
+    # =========================
+    # MOTORISTA
+    # =========================
+    linhas.append("👤 *MOTORISTA*")
+    linhas.append(f"Nome: {dados.get('nome')}")
+    linhas.append(f"Chapa: {dados.get('chapa')}")
+    linhas.append(f"Matrícula: {dados.get('matricula')}")
+    linhas.append(f"Sexo: {dados.get('sexo')} | Idade: {dados.get('idade')}")
+    linhas.append("")
+
+    # =========================
+    # FUNÇÃO
+    # =========================
+    linhas.append("💼 *FUNÇÃO*")
+    linhas.append(f"Cargo: {dados.get('funcao_nome')}")
+    linhas.append(f"Turno: {dados.get('turno')}")
+    linhas.append(f"Garagem: {dados.get('garagem')}")
+    linhas.append(f"Situação: {dados.get('situacao')}")
+    linhas.append("")
+
+    # =========================
+    # VÍNCULO
+    # =========================
+    linhas.append("📆 *VÍNCULO*")
+    linhas.append(f"Admissão: {dados.get('admissao')}")
+    linhas.append(f"Início: {dados.get('inicio')}")
+    linhas.append(f"Fim: {dados.get('fim')}")
+    linhas.append(f"Folga: {dados.get('folga')}")
+    linhas.append(f"Última folga: {dados.get('ultima_folga')}")
+    linhas.append("")
+
+    # =========================
+    # CNH
+    # =========================
+    linhas.append("🪪 *CNH*")
+    linhas.append(f"Vencimento: {dados.get('cnh_vencimento')}")
+    linhas.append("")
+
+    # =========================
+    # MONITOR
+    # =========================
+    monitor = dados.get("monitor", {})
+    linhas.append("👨‍💼 *MONITOR*")
+    linhas.append(f"Nome: {monitor.get('nome')}")
+    linhas.append(f"Agrupamento: {monitor.get('agrupamento')}")
+
+    return "\n".join(linhas)
+
+
+# ===============================================================
+# FUNÇÃO FINAL DO CHATBOT
+# ===============================================================
+def chatbot_motorista_por_chapa(chapa):
+    dados = consultar_motorista_por_chapa(chapa)
+    return formatar_motorista_para_chat(dados)
+
 
 # ===============================================================
 # TESTE LOCAL
 # ===============================================================
 if __name__ == "__main__":
-    print("🔍 Teste rápido:\n")
-    print(consultar_eventos_detalhados("19135", "01/11/2025"))
+    print("🤖 Resposta do Chatbot:\n")
+    print(chatbot_motorista_por_chapa("4639"))

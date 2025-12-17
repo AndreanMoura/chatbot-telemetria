@@ -1,6 +1,5 @@
 import pandas as pd
 import os
-import openpyxl
 from datetime import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -12,229 +11,197 @@ app = Flask(__name__)
 CORS(app)
 
 # ===============================================================
-# CAMINHOS DAS BASES
+# DIRETÓRIO BASE
 # ===============================================================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Base de Grupo
 CAMINHO_BASE_GRUPO = os.path.join(BASE_DIR, "Base Grafico Painel.xlsx")
 ABA_BASE_GRUPO = "Base detalhamento"
 
-# Base de Telemetria
 CAMINHO_TELEMETRIA = os.path.join(BASE_DIR, "Telemetria.xlsx")
 ABA_TELEMETRIA = "Telemetria"
 
 # ===============================================================
-# FUNÇÃO AUXILIAR – FORMATAÇÃO
+# FUNÇÕES AUXILIARES
 # ===============================================================
-def formatar_numero(n):
+def formatar_inteiro(valor):
     try:
-        return f"{int(float(n)):,}".replace(",", ".")
+        return f"{int(float(valor)):,}".replace(",", ".")
     except:
-        return n
+        return "N/D"
+
+def formatar_decimal(valor, casas=2):
+    try:
+        return f"{float(valor):.{casas}f}".replace(".", ",")
+    except:
+        return "N/D"
+
+def titulo(texto):
+    try:
+        return str(texto).strip().title()
+    except:
+        return texto
 
 # ===============================================================
-# CONSULTA - BASE DE GRUPO
+# BASE DE GRUPO
 # ===============================================================
 def carregar_base_grupo():
     if not os.path.exists(CAMINHO_BASE_GRUPO):
-        return None, f"🚨 Arquivo não encontrado: {CAMINHO_BASE_GRUPO}"
+        return None, "Arquivo da base de grupo não encontrado"
 
-    try:
-        df = pd.read_excel(CAMINHO_BASE_GRUPO, sheet_name=ABA_BASE_GRUPO, engine="openpyxl")
-        df.columns = df.columns.str.strip().str.lower()
-        return df, None
-    except Exception as e:
-        return None, f"🚨 Erro ao ler a base: {e}"
+    df = pd.read_excel(CAMINHO_BASE_GRUPO, sheet_name=ABA_BASE_GRUPO)
+    df.columns = df.columns.str.strip().str.lower()
+    df["chapa"] = df["chapa"].astype(str).str.strip()
+    return df, None
 
 def consultar_base_grupo(chapa):
     df, erro = carregar_base_grupo()
-
     if erro:
         return erro
 
-    if "chapa" not in df.columns:
-        return f"❌ Coluna 'chapa' não encontrada."
-
-    df["chapa"] = df["chapa"].astype(str).str.strip()
-    chapa = str(chapa).strip()
-
-    registro = df[df["chapa"] == chapa]
-
+    registro = df[df["chapa"] == str(chapa)]
     if registro.empty:
-        return f"ℹ️ Nenhum registro encontrado para a chapa {chapa}"
+        return f"Nenhum dado encontrado para a chapa {chapa}"
 
-    motorista = registro.iloc[0]
-
-    try:
-        mesano = pd.to_datetime(motorista.get("mesano")).strftime("%m/%Y")
-    except:
-        mesano = motorista.get("mesano", "N/D")
+    m = registro.iloc[0]
 
     try:
-        nome = motorista.get("nome", "N/D").strip().title()
+        mesano = pd.to_datetime(m.get("mesano")).strftime("%m/%Y")
     except:
-        nome = motorista.get("nome", "N/D")
-
-    try:
-        km = f"{float(motorista.get('km')):,.0f}".replace(",", ".")
-    except:
-        km = motorista.get("km", "N/D")
-
-    try:
-        litros = f"{float(motorista.get('litros')):,.0f}".replace(",", ".")
-    except:
-        litros = motorista.get("litros", "N/D")
-
-    try:
-        litros_meta = f"{float(motorista.get('litros meta')):,.0f}".replace(",", ".")
-    except:
-        litros_meta = motorista.get("litros meta", "N/D")
-
-    try:
-        economia = f"{float(motorista.get('economia')):.1f}".replace(".", ",")
-    except:
-        economia = motorista.get("economia", "N/D")
-
-    try:
-        performance = f"{float(motorista.get('performance')):.2f}".replace(".", ",")
-    except:
-        performance = motorista.get("performance", "N/D")
+        mesano = m.get("mesano", "N/D")
 
     return (
-        f"✅ BASE DE GRUPO - Dados do Motorista\n\n"
-        f"| Campo | Valor |\n"
-        f"| :--- | :--- |\n"
-        f"| Chapa | {chapa} |\n"
-        f"| Mês/Ano | {mesano} |\n"
-        f"| Nome | {nome} |\n"
-        f"| Elétrico | {motorista.get('eletrico', 'N/D')} |\n"
-        f"| Status | {motorista.get('status', 'N/D')} |\n"
-        f"| Grupo | {motorista.get('grupo', 'N/D')} |\n"
-        f"| Nº Grupo | {motorista.get('n_grupo', 'N/D')} |\n"
-        f"| KM | {km} |\n"
-        f"| Litros Consumidos | {litros} |\n"
-        f"| Meta de Litros | {litros_meta} |\n"
-        f"| Economia | {economia} |\n"
-        f"| Performance | {performance} |\n"
+        "📌 *BASE DE GRUPO*\n\n"
+        f"🆔 Chapa: {chapa}\n"
+        f"📅 Mês/Ano: {mesano}\n"
+        f"👤 Nome: {titulo(m.get('nome'))}\n"
+        f"⚡ Elétrico: {m.get('eletrico','N/D')}\n"
+        f"📊 Status: {m.get('status','N/D')}\n"
+        f"👥 Grupo: {m.get('grupo','N/D')} ({m.get('n_grupo','N/D')})\n\n"
+        f"🚗 KM Rodado: {formatar_inteiro(m.get('km'))}\n"
+        f"⛽ Litros: {formatar_inteiro(m.get('litros'))}\n"
+        f"🎯 Meta Litros: {formatar_inteiro(m.get('litros meta'))}\n"
+        f"💰 Economia: {formatar_decimal(m.get('economia'),1)}\n"
+        f"📈 Performance: {formatar_decimal(m.get('performance'))}"
     )
 
 # ===============================================================
-# CONSULTA - EVENTOS
+# EVENTOS
 # ===============================================================
-def consultar_eventos_detalhados(chapa, data_input):
-
+def consultar_eventos(chapa, data_input):
     try:
         data_consulta = datetime.strptime(data_input, "%d/%m/%Y").date()
-    except ValueError:
-        return f"❌ Data inválida: {data_input}. Use DD/MM/YYYY."
+    except:
+        return "Data inválida. Use DD/MM/YYYY"
 
     if not os.path.exists(CAMINHO_TELEMETRIA):
-        return f"🚨 Arquivo não encontrado: {CAMINHO_TELEMETRIA}"
+        return "Base de telemetria não encontrada"
 
-    df = pd.read_excel(CAMINHO_TELEMETRIA, sheet_name=ABA_TELEMETRIA, engine="openpyxl")
+    df = pd.read_excel(CAMINHO_TELEMETRIA, sheet_name=ABA_TELEMETRIA)
     df.columns = df.columns.str.strip().str.lower()
 
     df["data"] = pd.to_datetime(df["data"], dayfirst=True, errors="coerce").dt.date
-    df["chapa"] = df["chapa"].astype(str).str.strip()
+    df["chapa"] = df["chapa"].astype(str)
 
-    df_filtrado = df[(df["chapa"] == chapa) & (df["data"] == data_consulta)]
+    df = df[(df["chapa"] == chapa) & (df["data"] == data_consulta)]
 
-    if df_filtrado.empty:
-        return f"ℹ️ Nenhum evento encontrado para a chapa {chapa} na data {data_input}."
+    if df.empty:
+        return "Nenhum evento encontrado"
 
-    nome = df_filtrado.iloc[0]["nome"]
-    funcao = df_filtrado.iloc[0]["funcao"]
-
-    resultado = [
-        f"👤 Motorista: {nome}",
+    linhas = [
+        f"👤 Motorista: {df.iloc[0]['nome']}",
         f"🆔 Chapa: {chapa}",
-        f"💼 Função: {funcao}",
         f"📅 Data: {data_input}",
         "",
-        "| Evento | Quantidade |",
-        "| :--- | :---: |"
+        "📋 *EVENTOS*"
     ]
 
-    total_qtd = 0
+    total = 0
+    for _, r in df.iterrows():
+        qtd = int(float(r["quantidade"]))
+        total += qtd
+        linhas.append(f"- {r['evento']}: {formatar_inteiro(qtd)}")
 
-    for _, row in df_filtrado.iterrows():
-        evento = row["evento"]
-        qtd = int(float(row["quantidade"]))
-        total_qtd += qtd
+    linhas.append(f"\n🔢 Total do dia: {formatar_inteiro(total)}")
 
-        resultado.append(f"| {evento} | {formatar_numero(qtd)} |")
-
-    resultado.append(f"| Total Dia | {formatar_numero(total_qtd)} |")
-
-    return "\n".join(resultado)
+    return "\n".join(linhas)
 
 # ===============================================================
-# CONSULTA - MÉTRICAS
+# MÉTRICAS
 # ===============================================================
-def buscar_metricas_do_dia(chapa, data_input):
-
+def buscar_metricas(chapa, data_input):
     try:
         data_consulta = datetime.strptime(data_input, "%d/%m/%Y").date()
-    except ValueError:
-        return f"❌ Data inválida: {data_input}. Use DD/MM/YYYY."
+    except:
+        return "Data inválida"
 
-    if not os.path.exists(CAMINHO_TELEMETRIA):
-        return f"🚨 Arquivo não encontrado: {CAMINHO_TELEMETRIA}"
-
-    df = pd.read_excel(CAMINHO_TELEMETRIA, sheet_name=ABA_TELEMETRIA, engine="openpyxl")
+    df = pd.read_excel(CAMINHO_TELEMETRIA, sheet_name=ABA_TELEMETRIA)
     df.columns = df.columns.str.strip().str.lower()
 
     df["data"] = pd.to_datetime(df["data"], dayfirst=True, errors="coerce").dt.date
-    df["chapa"] = df["chapa"].astype(str).str.strip()
+    df["chapa"] = df["chapa"].astype(str)
 
-    df_filtrado = df[(df["chapa"] == chapa) & (df["data"] == data_consulta)]
+    df = df[(df["chapa"] == chapa) & (df["data"] == data_consulta)]
 
-    if df_filtrado.empty:
-        return f"ℹ️ Nenhum registro encontrado para a chapa {chapa} na data {data_input}."
+    if df.empty:
+        return "Nenhum dado encontrado"
 
-    qtd_total = int(df_filtrado["quantidade"].astype(float).sum())
+    total = int(df["quantidade"].astype(float).sum())
 
     return (
-        f"📊 MÉTRICA DO DIA\n\n"
-        f"| Campo | Valor |\n"
-        f"| :--- | :---: |\n"
-        f"| Chapa | {chapa} |\n"
-        f"| Data | {data_input} |\n"
-        f"| Total de Eventos | {formatar_numero(qtd_total)} |\n"
+        "📊 *MÉTRICAS DO DIA*\n\n"
+        f"🆔 Chapa: {chapa}\n"
+        f"📅 Data: {data_input}\n"
+        f"🔢 Total de Eventos: {formatar_inteiro(total)}"
     )
 
 # ===============================================================
-# ROTAS DA API
+# 🔥 NOVO – RECEBER DADOS DE API (JSON)
 # ===============================================================
+@app.route("/dados-api", methods=["POST"])
+def receber_dados_api():
+    data = request.json
 
+    return jsonify({
+        "resultado": (
+            "🚀 *RESULTADO DE DESEMPENHO*\n\n"
+            f"👤 Nome: {titulo(data.get('Nome'))}\n"
+            f"🆔 Chapa: {data.get('Chapa')}\n"
+            f"📅 Mês/Ano: {data.get('Mesano')}\n"
+            f"⚡ Elétrico: {data.get('Eletrico')}\n"
+            f"📊 Status: {data.get('Status')}\n\n"
+            f"🚗 KM Rodado: {data.get('Km_Rodada')}\n"
+            f"⛽ Litros Consumidos: {data.get('Litros_Consumidos')}\n"
+            f"🎯 Meta Litros: {data.get('Litros_Meta')}\n"
+            f"📈 KM/L: {data.get('Km_Por_Litro')}\n\n"
+            f"💰 Economia: {data.get('Economia')}\n"
+            f"🌱 CO₂: {data.get('Co2')}\n"
+            f"🏆 Prêmio Final: {data.get('Premio-Final',{}).get('DADOS',{}).get('Total',0)}"
+        )
+    })
+
+# ===============================================================
+# ROTAS
+# ===============================================================
 @app.route("/")
 def home():
-    return jsonify({"status": "online", "rotas": ["/grupo", "/eventos", "/metricas"]})
+    return jsonify({"status": "online"})
 
 @app.route("/grupo")
-def api_grupo():
-    re = request.args.get("re")
-    resultado = consultar_base_grupo(re)
-    return jsonify({"resultado": resultado})
+def grupo():
+    return jsonify({"resultado": consultar_base_grupo(request.args.get("re"))})
 
 @app.route("/eventos")
-def api_eventos():
-    re = request.args.get("re")
-    data = request.args.get("data")
-    resultado = consultar_eventos_detalhados(re, data)
-    return jsonify({"resultado": resultado})
+def eventos():
+    return jsonify({"resultado": consultar_eventos(request.args.get("re"), request.args.get("data"))})
 
 @app.route("/metricas")
-def api_metricas():
-    re = request.args.get("re")
-    data = request.args.get("data")
-    resultado = buscar_metricas_do_dia(re, data)
-    return jsonify({"resultado": resultado})
-
+def metricas():
+    return jsonify({"resultado": buscar_metricas(request.args.get("re"), request.args.get("data"))})
 
 # ===============================================================
-# LOCAL (opcional)
+# RENDER
 # ===============================================================
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
