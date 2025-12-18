@@ -1,174 +1,145 @@
 import pandas as pd
-import requests
 import os
+import openpyxl
 from datetime import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
+# ===============================================================
+# APP FLASK
+# ===============================================================
 app = Flask(__name__)
 CORS(app)
 
 # ===============================================================
-# CONFIGURAÇÕES E CAMINHOS
+# CAMINHOS DAS BASES (AJUSTADO PARA SERVIDOR NUVEM)
 # ===============================================================
-# Configurações API Motorista (GDS/Escalado)
-API_MOTORISTA_URL = "https://siannet.gestaosian.com/api/EscaladoInformacao?empresa=2&data_inicio=01/12/2025&data_fim=30/12/2025"
-API_MOTORISTA_USER = "gds"
-API_MOTORISTA_PASS = "SUA_SENHA_GDS"
-
-# Configurações API Desempenho (JBS/Performance)
-API_DESEMPENHO_URL = "https://siannet.gestaosian.com/api/WsPrime?campanha=2025/2026&resultado=performance_sintetico"
-API_DESEMPENHO_USER = "jbs"
-API_DESEMPENHO_PASS = "SUA_SENHA_JBS"
-
-TIMEOUT_API = 600
-
-# Caminhos de Arquivos Excel
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-CAMINHO_BASE_PAINEL = r"C:\Users\andrean.miranda\OneDrive - Grupo HSGP\Arquivos de Mohamed Hally Alves do Nascimento - GESTAO DE BI 1\Operação\Guilherme\Python\Chatbot\Base Grafico Painel.xlsx"
+
+# O Render precisa que esses arquivos estejam no seu GitHub
+CAMINHO_BASE_GRUPO = os.path.join(BASE_DIR, "Base Grafico Painel.xlsx")
+ABA_BASE_GRUPO = "Base detalhamento"
+
 CAMINHO_TELEMETRIA = os.path.join(BASE_DIR, "Telemetria.xlsx")
+ABA_TELEMETRIA = "Telemetria"
 
 # ===============================================================
-# FUNÇÕES DE FORMATAÇÃO
+# FUNÇÃO AUXILIAR – FORMATAÇÃO
 # ===============================================================
-def formatar_numero(valor, casas=2):
+def formatar_numero(n):
     try:
-        return f"{float(valor):,.{casas}f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        return f"{int(float(n)):,}".replace(",", ".")
     except:
-        return valor
+        return n
 
 # ===============================================================
-# LÓGICA 1: ESCALADO (API MOTORISTAS)
+# CONSULTA - BASE DE GRUPO
 # ===============================================================
-def consultar_escalado(chapa):
-    chapa_full = str(chapa).zfill(9)
+def carregar_base_grupo():
+    if not os.path.exists(CAMINHO_BASE_GRUPO):
+        return None, f"🚨 Arquivo Excel não encontrado no servidor: Base Grafico Painel.xlsx"
+
     try:
-        response = requests.get(API_MOTORISTA_URL, auth=(API_MOTORISTA_USER, API_MOTORISTA_PASS), timeout=TIMEOUT_API)
-        response.raise_for_status()
-        dados_api = response.json().get("dados", [])
-        
-        df = pd.DataFrame(dados_api)
-        df.columns = df.columns.str.lower().str.strip()
-        df["chapa"] = df["chapa"].astype(str).str.zfill(9)
-        
-        motorista = df[df["chapa"] == chapa_full]
-        if motorista.empty:
-            return f"ℹ️ Motorista chapa {chapa} não encontrado no Escalado."
-        
-        m = motorista.iloc[0]
-        res = [
-            "👤 *DADOS DO ESCALADO*",
-            f"Nome: {str(m.get('nome')).title()}",
-            f"Cargo: {m.get('nome_funcao', 'N/D')}",
-            f"Garagem: {m.get('garagem', 'N/D')}",
-            f"Turno: {m.get('turno', 'N/D')}",
-            f"Situação: {m.get('situacao', 'N/D')}",
-            f"\n📆 *VÍNCULO*",
-            f"Última Folga: {m.get('ult_folga', 'N/D')}",
-            f"Venc. CNH: {m.get('cnh_venc', 'N/D')}"
-        ]
-        return "\n".join(res)
+        df = pd.read_excel(CAMINHO_BASE_GRUPO, sheet_name=ABA_BASE_GRUPO, engine="openpyxl")
+        df.columns = df.columns.str.strip().str.lower()
+        return df, None
     except Exception as e:
-        return f"🚨 Erro ao consultar Escalado: {e}"
+        return None, f"🚨 Erro ao ler a base: {e}"
 
-# ===============================================================
-# LÓGICA 2: PERFORMANCE (EXCEL + API JBS)
-# ===============================================================
-def consultar_performance(chapa):
-    chapa_full = str(chapa).zfill(9)
+def consultar_base_grupo(chapa):
+    df, erro = carregar_base_grupo()
+    if erro: return erro
+
+    if "chapa" not in df.columns:
+        return "❌ Coluna 'chapa' não encontrada no Excel."
+
+    df["chapa"] = df["chapa"].astype(str).str.strip()
+    chapa = str(chapa).strip()
+    registro = df[df["chapa"] == chapa]
+
+    if registro.empty:
+        return f"ℹ️ Nenhum registro encontrado para a chapa {chapa}"
+
+    motorista = registro.iloc[0]
+
+    # Extração de dados (com tratamento para não quebrar)
     try:
-        # 1. Carregar Base Excel para dados cadastrais/grupo
-        df_excel = pd.read_excel(CAMINHO_BASE_PAINEL, sheet_name="Base detalhamento")
-        df_excel.columns = df_excel.columns.str.lower().str.strip()
-        df_excel["chapa"] = df_excel["chapa"].astype(str).str.zfill(9)
-        
-        base_m = df_excel[df_excel["chapa"] == chapa_full]
-        
-        # 2. Consultar API Desempenho
-        resp_api = requests.get(API_DESEMPENHO_URL, auth=(API_DESEMPENHO_USER, API_DESEMPENHO_PASS), timeout=TIMEOUT_API)
-        resp_api.raise_for_status()
-        dados_desempenho = resp_api.json().get("dados", [])
-        
-        df_des = pd.DataFrame(dados_desempenho)
-        df_des.columns = df_des.columns.str.lower().str.strip()
-        df_des["chapa"] = df_des["chapa"].astype(str).str.zfill(9)
-        desempenho = df_des[df_des["chapa"] == chapa_full]
+        mesano = pd.to_datetime(motorista.get("mesano")).strftime("%m/%Y")
+    except:
+        mesano = motorista.get("mesano", "N/D")
 
-        # Montar Resposta
-        res = ["📊 *PERFORMANCE MENSAL*"]
-        if not base_m.empty:
-            res.append(f"Motorista: {base_m.iloc[0].get('nome', 'N/D').title()}")
-        
-        if not desempenho.empty:
-            d = desempenho.iloc[0]
-            res.extend([
-                f"Referência: {d.get('mesano', 'N/D')}",
-                f"\nStatus: **{d.get('status', 'N/D')}**",
-                f"Km Rodada: {formatar_numero(d.get('km_rodada'))} km",
-                f"Km por Litro: {formatar_numero(d.get('km_por_litro'))}",
-                f"Economia: {formatar_numero(d.get('economia'), 0)}"
-            ])
-            # Prêmio
-            premio = d.get("premio-final", {})
-            if isinstance(premio, dict):
-                total = premio.get("dados", {}).get("total", 0)
-                res.append(f"🏆 *Prêmio:* R$ {formatar_numero(total, 2)}")
-        else:
-            res.append("ℹ️ Dados de performance não disponíveis na API para este mês.")
-            
-        return "\n".join(res)
-    except Exception as e:
-        return f"🚨 Erro na Performance: {e}"
-
-# ===============================================================
-# LÓGICA 3: EVENTOS (TELEMETRIA EXCEL)
-# ===============================================================
-def consultar_eventos(chapa):
-    if not os.path.exists(CAMINHO_TELEMETRIA):
-        return "⚠️ Arquivo de telemetria não encontrado no servidor."
+    nome = str(motorista.get("nome", "N/D")).strip().title()
     
+    # Montagem da resposta formatada para o Chatbot/Monitor
+    return (
+        f"✅ BASE DE GRUPO - Dados do Motorista\n\n"
+        f"👤 Nome: {nome}\n"
+        f"🆔 Chapa: {chapa}\n"
+        f"📅 Mês/Ano: {mesano}\n"
+        f"📊 Status: {motorista.get('status', 'N/D')}\n"
+        f"🏢 Grupo: {motorista.get('grupo', 'N/D')}\n"
+        f"🛣️ KM: {formatar_numero(motorista.get('km'))}\n"
+        f"⛽ Litros: {formatar_numero(motorista.get('litros'))}\n"
+        f"📉 Performance: {motorista.get('performance', 'N/D')}"
+    )
+
+# ===============================================================
+# CONSULTA - EVENTOS (LÓGICA MANTIDA)
+# ===============================================================
+def consultar_eventos_detalhados(chapa, data_input):
     try:
-        df = pd.read_excel(CAMINHO_TELEMETRIA)
-        df.columns = df.columns.str.lower().str.strip()
-        df["chapa"] = df["chapa"].astype(str).str.strip()
-        
-        hoje = datetime.now().strftime("%d/%m/%Y")
-        filtro = df[(df["chapa"] == str(chapa))] # Pode adicionar filtro de data aqui
-        
-        if filtro.empty:
-            return f"ℹ️ Nenhum evento de telemetria para a chapa {chapa}."
+        data_consulta = datetime.strptime(data_input, "%d/%m/%Y").date()
+    except ValueError:
+        return f"❌ Data inválida: {data_input}. Use DD/MM/YYYY."
 
-        res = [f"📈 *EVENTOS DE TELEMETRIA*", f"Chapa: {chapa}\n"]
-        res.append("| Evento | Qtd |")
-        res.append("| :--- | :---: |")
-        for _, row in filtro.tail(5).iterrows(): # Pega os últimos 5 registros
-            res.append(f"| {row.get('evento', 'N/D')} | {int(row.get('quantidade', 0))} |")
-            
-        return "\n".join(res)
-    except Exception as e:
-        return f"🚨 Erro na Telemetria: {e}"
+    if not os.path.exists(CAMINHO_TELEMETRIA):
+        return "🚨 Arquivo de Telemetria não encontrado no servidor."
+
+    df = pd.read_excel(CAMINHO_TELEMETRIA, sheet_name=ABA_TELEMETRIA, engine="openpyxl")
+    df.columns = df.columns.str.strip().str.lower()
+    df["data"] = pd.to_datetime(df["data"], dayfirst=True, errors="coerce").dt.date
+    df["chapa"] = df["chapa"].astype(str).str.strip()
+
+    df_filtrado = df[(df["chapa"] == chapa) & (df["data"] == data_consulta)]
+
+    if df_filtrado.empty:
+        return f"ℹ️ Nenhum evento para a chapa {chapa} em {data_input}."
+
+    resultado = [f"📊 EVENTOS - {data_input}", f"Motorista: {df_filtrado.iloc[0]['nome']}", ""]
+    for _, row in df_filtrado.iterrows():
+        resultado.append(f"• {row['evento']}: {int(float(row['quantidade']))}")
+    
+    return "\n".join(resultado)
 
 # ===============================================================
-# ROTAS FLASK
+# ROTAS DA API
 # ===============================================================
-@app.route("/motorista", methods=["GET"])
-def rota_motorista():
-    chapa = request.args.get("chapa")
-    tipo = request.args.get("tipo", "escalado") # Default é escalado
 
-    if not chapa:
-        return jsonify({"resposta": "Por favor, informe a chapa."}), 400
+@app.route("/")
+def home():
+    return jsonify({
+        "mensagem": "🚀 API Telemetria HSGP Online",
+        "endpoints": ["/grupo?re=CHAPA", "/eventos?re=CHAPA&data=DD/MM/YYYY"]
+    })
 
-    if tipo == "escalado":
-        resultado = consultar_escalado(chapa)
-    elif tipo == "performance":
-        resultado = consultar_performance(chapa)
-    elif tipo == "eventos":
-        resultado = consultar_eventos(chapa)
-    else:
-        resultado = "Tipo de consulta inválido."
+@app.route("/grupo")
+def api_grupo():
+    re = request.args.get("re")
+    if not re: return jsonify({"resultado": "Informe o 're' (chapa)"})
+    resultado = consultar_base_grupo(re)
+    return jsonify({"resultado": resultado})
 
-    return jsonify({"resposta": resultado})
+@app.route("/eventos")
+def api_eventos():
+    re = request.args.get("re")
+    data = request.args.get("data")
+    if not re or not data: return jsonify({"resultado": "Informe 're' e 'data'."})
+    resultado = consultar_eventos_detalhados(re, data)
+    return jsonify({"resultado": resultado})
 
+# ===============================================================
+# CONFIGURAÇÃO DE PORTA PARA O RENDER
+# ===============================================================
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
