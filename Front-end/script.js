@@ -1,168 +1,141 @@
-/* ================= CONFIG ================= */
+/**
+ * Altere para a URL correta do seu Render.
+ * Certifique-se de que não há barra "/" no final.
+ */
 const API_BASE_URL = "https://chatbot-telemetria.onrender.com";
 
-/* ---------- Tema ---------- */
-document.getElementById("themeToggle").addEventListener("click", () => {
-    document.body.classList.toggle("light");
-});
+let estado = {
+  chapa: null
+};
 
-/* ---------- Helpers ---------- */
-function appendMessage(text, who = "bot", html = false) {
-    const chat = document.getElementById("chat");
+const chat = document.getElementById("chat");
+const input = document.getElementById("input");
+const quickActions = document.getElementById("quickActions");
 
-    const el = document.createElement("div");
-    el.className = "msg " + (who === "user" ? "user" : "bot");
+/**
+ * Adiciona mensagem na tela com suporte a tabelas simples
+ */
+function appendMessage(text, who = "bot") {
+  const div = document.createElement("div");
+  div.className = `msg ${who}`;
+  
+  let formattedText = text
+    .replace(/\n/g, "<br>")
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
 
-    if (html) el.innerHTML = text;
-    else el.textContent = text;
+  // Conversão de tabelas Markdown simples para HTML
+  if (text.includes("|")) {
+    const lines = text.split("\n");
+    let tableHtml = "<table style='width:100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 10px;'>";
+    lines.forEach(line => {
+      if (line.trim().startsWith("|") && !line.includes("---")) {
+        const cols = line.split("|").filter(c => c.trim() !== "");
+        tableHtml += "<tr>" + cols.map(c => `<td style='border: 1px solid #4a3a8a; padding: 4px;'>${c.trim()}</td>`).join("") + "</tr>";
+      }
+    });
+    tableHtml += "</table>";
+    formattedText = formattedText.split("<br>|")[0] + tableHtml;
+  }
 
-    const time = document.createElement("span");
-    time.className = "time";
-    time.textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    el.appendChild(time);
-
-    chat.appendChild(el);
-    chat.scrollTop = chat.scrollHeight;
+  div.innerHTML = formattedText;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
 }
 
-function formatarNumero(n) {
-    const clean = String(n).replace(/\./g, "").replace(/,/g, ".");
-    const num = Number(clean);
-    return isNaN(num) ? n : num.toLocaleString("pt-BR");
+/**
+ * Envio de mensagem
+ */
+function enviar() {
+  const valor = input.value.trim();
+  if (!valor) return;
+
+  appendMessage(valor, "user");
+  input.value = "";
+
+  if (!estado.chapa) {
+    estado.chapa = valor;
+    consultarServidor("resumo", { chapa: valor });
+  } else {
+    // Comandos extras se necessário
+    consultarServidor("resumo", { chapa: estado.chapa });
+  }
 }
 
-/* ---------- Converte Markdown → HTML ---------- */
-function gerarTabelaHTML(md) {
-    if (!md) return md;
+/**
+ * Função genérica para consultar o servidor
+ */
+async function consultarServidor(endpoint, params) {
+  const query = new URLSearchParams(params).toString();
+  const url = `${API_BASE_URL}/${endpoint}?${query}`;
+  
+  const loadingMsg = "⏳ Consultando base de dados...";
+  appendMessage(loadingMsg);
 
-    const linhas = md.split("\n").filter(l => l.trim() !== "");
+  try {
+    // Definimos um timeout para não ficar esperando eternamente
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 segundos
 
-    // Encontra índice do cabeçalho
-    const idxCab = linhas.findIndex(l => l.includes("|"));
-    if (idxCab === -1) return `<pre>${md}</pre>`;
-
-    const meta = linhas.slice(0, idxCab).join("<br>");
-
-    // Cabeçalho
-    const header = linhas[idxCab]
-        .split("|")
-        .map(s => s.trim())
-        .filter(Boolean);
-
-    // Linhas de dados
-    const dados = linhas
-        .slice(idxCab + 2) // pula cabeçalho + separador
-        .map(l =>
-            l.split("|")
-                .map(s => s.trim())
-                .filter(Boolean)
-        )
-        .filter(cols => cols.length > 0);
-
-    // Monta HTML
-    let html = `<div class="meta">${meta}</div>`;
-    html += `<table class="tabela-excel"><thead><tr>`;
-
-    header.forEach(col => html += `<th>${col}</th>`);
-    html += `</tr></thead><tbody>`;
-
-    dados.forEach(cols => {
-        html += "<tr>";
-        cols.forEach(value => {
-            if (value.match(/^[0-9\.,-]+$/)) {
-                html += `<td class="num">${formatarNumero(value)}</td>`;
-            } else {
-                html += `<td>${value}</td>`;
-            }
-        });
-        html += "</tr>";
+    const response = await fetch(url, {
+      method: 'GET',
+      mode: 'cors', // Crucial para o Render
+      signal: controller.signal,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
     });
 
-    html += "</tbody></table>";
-    return html;
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`Erro HTTP: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    // Remove a mensagem de carregamento antes de mostrar a resposta
+    removerUltimaMensagem(loadingMsg);
+
+    // Prioriza o campo 'resposta' ou 'mensagem'
+    const textoBot = data.resposta || data.mensagem || JSON.stringify(data);
+    appendMessage(textoBot);
+    
+    if (quickActions) quickActions.style.display = "flex";
+
+  } catch (error) {
+    removerUltimaMensagem(loadingMsg);
+    console.error("Erro detalhado:", error);
+    
+    if (error.name === 'AbortError') {
+      appendMessage("🚨 A conexão demorou demais (Timeout). O servidor do Render pode estar 'acordando' (Cold Start). Tente novamente em alguns segundos.");
+    } else {
+      appendMessage(`🚨 Não consegui conectar ao servidor.\n\nMotivo: ${error.message}\nVerifique se o backend está ativo em: ${API_BASE_URL}`);
+    }
+  }
 }
 
-/* ---------- Chamada API ---------- */
-async function consultar(tipo, re, data) {
-    appendMessage(`${tipo.toUpperCase()} • RE:${re} • ${data}`, "user");
-    appendMessage(`⏳ Consultando ${tipo}...`, "bot");
-
-    try {
-        const url = `${API_BASE_URL}/${tipo}?re=${encodeURIComponent(re)}&data=${encodeURIComponent(data)}`;
-        const resp = await fetch(url);
-
-        if (!resp.ok) {
-            const err = await resp.json();
-            appendMessage(`❌ Erro: ${err.mensagem || err.erro}`, "bot");
-            return;
+function removerUltimaMensagem(texto) {
+    const mensagens = document.querySelectorAll('.msg.bot');
+    for (let i = mensagens.length - 1; i >= 0; i--) {
+        if (mensagens[i].innerText.includes(texto)) {
+            mensagens[i].remove();
+            break;
         }
-
-        const json = await resp.json();
-        const msg = gerarTabelaHTML(json.resultado);
-        appendMessage(msg, "bot", true);
-
-    } catch (e) {
-        appendMessage(`⚠️ Erro: ${e.message}`, "bot");
     }
 }
 
-/* ---------- Botões ---------- */
-document.getElementById("btnEventos").addEventListener("click", () => {
-    const re = document.getElementById("inpRe").value.trim();
-    const data = document.getElementById("inpDate").value;
-
-    if (!re || !data)
-        return appendMessage("❌ Preencha RE e Data", "bot");
-
-    consultar("eventos", re, formatarData(data));
-});
-
-document.getElementById("btnMetricas").addEventListener("click", () => {
-    const re = document.getElementById("inpRe").value.trim();
-    const data = document.getElementById("inpDate").value;
-
-    if (!re || !data)
-        return appendMessage("❌ Preencha RE e Data", "bot");
-
-    consultar("metricas", re, formatarData(data));
-});
-
-/* ---------- Botão Grupo / Performance ---------- */
-document.getElementById("btnGrupo").addEventListener("click", () => {
-    const re = document.getElementById("inpRe").value.trim();
-
-    if (!re)
-        return appendMessage("❌ Preencha o RE / Chapa", "bot");
-
-    appendMessage(`GRUPO • RE:${re}`, "user");
-    appendMessage(`⏳ Consultando grupo/performance...`, "bot");
-
-    fetch(`${API_BASE_URL}/grupo?re=${encodeURIComponent(re)}`)
-        .then(resp => resp.json())
-        .then(json => {
-            const msg = gerarTabelaHTML(json.resultado);
-            appendMessage(msg, "bot", true);
-        })
-        .catch(e => {
-            appendMessage(`⚠️ Erro: ${e.message}`, "bot");
-        });
-});
-
-/* ---------- Util ---------- */
-function formatarData(yyyyMMdd) {
-    const [y, m, d] = yyyyMMdd.split("-");
-    return `${d}/${m}/${y}`;
+function selecionarAcao(tipo) {
+    if (!estado.chapa) return;
+    if (tipo === 'performance') consultarServidor("resumo", { chapa: estado.chapa });
+    if (tipo === 'dados') consultarServidor("motorista", { chapa: estado.chapa });
 }
 
-/* ---------- Mensagem inicial ---------- */
-setTimeout(() => {
-    appendMessage(
-        "📋 MENU DE CONSULTA<br>" +
-        "1️⃣ Grupo / Performance<br>" +
-        "2️⃣ Eventos<br>" +
-        "3️⃣ Métricas<br><br>" +
-        "Informe RE e Data (se necessário) e clique no botão desejado.",
-        "bot",
-        true
-    );
-}, 300);
+window.onload = () => {
+  appendMessage("👋 Olá! Informe o **RE ou Chapa** para iniciar a consulta:");
+};
+
+// Suporte ao Enter
+input.addEventListener("keypress", (e) => {
+  if (e.key === "Enter") enviar();
+});

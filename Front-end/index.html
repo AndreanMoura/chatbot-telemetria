@@ -1,56 +1,42 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Chatbot Telemetria — WhatsApp UI</title>
-
-  <!-- Fonte -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-
-  <!-- CSS externo -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chat Telemetria</title>
   <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
-<div class="app" id="app">
+
+<div class="app">
+
+  <!-- HEADER -->
   <header class="header">
     <div class="avatar">CT</div>
-    <div style="flex:1">
-      <div class="title">Chat Telemetria</div>
-      <div class="subtitle small">Estilo WhatsApp — Mobile</div>
-    </div>
-    <div class="header-controls">
-      <button class="btn-icon" id="themeToggle" title="Alternar tema">🌓</button>
+    <div class="info">
+      <h1>Chat Telemetria</h1>
+      <span>Consulta Operacional</span>
     </div>
   </header>
 
-  <main class="chat" id="chat">
-      <div class="meta small" style="text-align:center;">
-        Envie "eventos" ou "metricas" com RE e Data<br>ou use os botões abaixo.
-      </div>
-  </main>
+  <!-- CHAT -->
+  <main class="chat" id="chat"></main>
 
+  <!-- QUICK ACTIONS -->
+  <div class="quick-actions" id="quickActions" style="display: none;">
+    <button onclick="selecionarAcao('performance')">📊 Performance</button>
+    <button onclick="selecionarAcao('dados')">👤 Dados Cadastrais</button>
+    <button onclick="limparChat()">🔄 Nova Consulta</button>
+  </div>
+
+  <!-- INPUT -->
   <footer class="composer">
-    <div class="inputs">
-      <div class="field" style="flex:1;">
-        <input id="inpRe" type="text" placeholder="RE / Chapa" aria-label="RE" />
-      </div>
-      <div class="field">
-        <input id="inpDate" type="date" aria-label="Data" />
-      </div>
-    </div>
-
-    <div style="display:flex; flex-direction:column; gap:8px;">
-      <button class="btn-alt" id="btnEventos">Eventos</button>
-      <button class="btn-send" id="btnMetricas">Métricas</button>
-      <button class="btn-alt" id="btnGrupo">Grupo / Performance</button>
-    </div>
+    <input id="input" type="text" placeholder="Informe a Chapa/RE..." autocomplete="off">
+    <button onclick="enviar()">Enviar</button>
   </footer>
+
 </div>
 
-<!-- JS externo -->
 <script src="script.js"></script>
-
 </body>
 </html>
