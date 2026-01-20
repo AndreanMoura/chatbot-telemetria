@@ -3,38 +3,54 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Chat Telemetria</title>
+  <title>Webot - Telemetria</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
 
 <div class="app">
-
-  <!-- HEADER -->
   <header class="header">
-    <div class="avatar">CT</div>
-    <div class="info">
-      <h1>Chat Telemetria</h1>
-      <span>Consulta Operacional</span>
+    <div class="header-content">
+      <div class="avatar">W</div>
+      <div class="info">
+        <h1>Webot</h1>
+        <span class="status-online">Online agora</span>
+      </div>
     </div>
+    <button class="invite-btn">+ Invite</button>
   </header>
 
-  <!-- CHAT -->
-  <main class="chat" id="chat"></main>
+  <main class="chat" id="chat">
+    <div class="welcome-area">
+      <div class="circle-decoration">
+        <p>Hi, Todd 👋</p>
+        <h2>Tap to chat</h2>
+        <div class="voice-wave"><span></span><span></span><span></span></div>
+      </div>
+    </div>
+  </main>
 
-  <!-- QUICK ACTIONS -->
- <div class="quick-actions" id="quickActions" style="display: none;">
-    <button onclick="selecionarAcao('performance')">📊 Base de Grupo</button>
-    <button onclick="selecionarAcao('eventos')">📈 Eventos Hoje</button>
-    <button onclick="limparChat()">🔄 Nova Consulta</button>
+  <div class="explore-section">
+    <h3>Explore</h3>
+    <div class="quick-actions" id="quickActions">
+      <button onclick="selecionarAcao('performance')" class="card-btn">
+        <i class="fa-solid fa-chart-simple icon-purple"></i>
+        <div><strong>Base Grupo</strong><p>Análise de performance</p></div>
+      </button>
+      <button onclick="selecionarAcao('eventos')" class="card-btn">
+        <i class="fa-solid fa-calendar-days icon-orange"></i>
+        <div><strong>Eventos</strong><p>Registros de hoje</p></div>
+      </button>
+    </div>
   </div>
 
-  <!-- INPUT -->
   <footer class="composer">
-    <input id="input" type="text" placeholder="Informe a Chapa/RE..." autocomplete="off">
-    <button onclick="enviar()">Enviar</button>
+    <div class="input-wrapper">
+      <input id="input" type="text" placeholder="Informe a Chapa/RE..." autocomplete="off">
+      <button onclick="enviar()"><i class="fa-solid fa-paper-plane"></i></button>
+    </div>
   </footer>
-
 </div>
 
 <script src="script.js"></script>
