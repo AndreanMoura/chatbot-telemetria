@@ -179,4 +179,4 @@ def chatbot_motorista_por_chapa(chapa):
 # ===============================================================
 if __name__ == "__main__":
     print("🤖 Resposta do Chatbot:\n")
-    print(chatbot_motorista_por_chapa("4639"))
+    print(chatbot_motorista_por_chapa("14594"))
