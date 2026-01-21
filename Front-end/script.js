@@ -1,4 +1,5 @@
-const API_BASE_URL = "https://chatbot-telemetria.onrender.com"; // Verifique se é este o link no Render
+// Substitua pelo endereço que aparece no seu terminal Python
+const API_BASE_URL = "http://127.0.0.1:5000"; 
 
 let estado = { chapa: null };
 
@@ -7,21 +8,26 @@ const input = document.getElementById("input");
 const quickActions = document.getElementById("quickActions");
 
 function appendMessage(text, who = "bot") {
+  // Esconde o círculo central ao começar a conversa
+  const welcome = document.querySelector('.welcome-area');
+  if (welcome) welcome.style.display = 'none';
+
   const div = document.createElement("div");
   div.className = `msg ${who}`;
   
-  // Converte Markdown de tabela e negrito vindo do Python
+  // Converte Markdown e quebras de linha
   let formattedText = text
     .replace(/\n/g, "<br>")
     .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
 
+  // Formatação de tabela se houver caracteres "|"
   if (text.includes("|")) {
     const lines = text.split("\n");
     let tableHtml = "<table style='width:100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 10px;'>";
     lines.forEach(line => {
       if (line.trim().startsWith("|") && !line.includes("---")) {
         const cols = line.split("|").filter(c => c.trim() !== "");
-        tableHtml += "<tr>" + cols.map(c => `<td style='border: 1px solid #4a3a8a; padding: 4px;'>${c.trim()}</td>`).join("") + "</tr>";
+        tableHtml += "<tr>" + cols.map(c => `<td style='border: 1px solid #333; padding: 4px;'>${c.trim()}</td>`).join("") + "</tr>";
       }
     });
     tableHtml += "</table>";
@@ -33,25 +39,31 @@ function appendMessage(text, who = "bot") {
   chat.scrollTop = chat.scrollHeight;
 }
 
-async function consultarServidor(endpoint, params) {
-  const query = new URLSearchParams(params).toString();
-  const url = `${API_BASE_URL}/${endpoint}?${query}`;
+// FUNÇÃO PRINCIPAL: Agora acessa /chatbot/VALOR
+async function consultarServidor(chapa) {
+  const url = `${API_BASE_URL}/chatbot/${chapa}`;
   
-  appendMessage("⏳ Consultando base...");
+  appendMessage("⏳ Consultando Webot...");
 
   try {
-    const response = await fetch(url, { method: 'GET', mode: 'cors' });
+    const response = await fetch(url, { method: 'GET' });
     if (!response.ok) throw new Error(`Erro: ${response.status}`);
 
     const data = await response.json();
     removerUltimaMensagem("⏳ Consultando");
 
-    // O Python retorna na chave 'resultado'
-    appendMessage(data.resultado || "Sem dados encontrados.");
+    // O Python retorna os dados na chave 'texto'
+    if (data.texto) {
+        appendMessage(data.texto);
+    } else {
+        appendMessage("❌ Não foram encontrados dados para esta chapa.");
+    }
+    
     quickActions.style.display = "flex";
   } catch (error) {
     removerUltimaMensagem("⏳ Consultando");
-    appendMessage(`🚨 Erro de conexão: ${error.message}`);
+    appendMessage(`🚨 Erro de conexão: Verifique se o Python está rodando.`);
+    console.error(error);
   }
 }
 
@@ -61,20 +73,15 @@ function enviar() {
   appendMessage(valor, "user");
   input.value = "";
 
-  if (!estado.chapa) {
-    estado.chapa = valor;
-    // Primeira consulta busca na Base de Grupo
-    consultarServidor("grupo", { re: valor });
-  }
+  estado.chapa = valor;
+  // Chama a função passando apenas a chapa
+  consultarServidor(valor);
 }
 
 function selecionarAcao(tipo) {
     if (!estado.chapa) return;
-    const hoje = new Date().toLocaleDateString('pt-BR');
-    
-    if (tipo === 'performance') consultarServidor("grupo", { re: estado.chapa });
-    if (tipo === 'eventos') consultarServidor("eventos", { re: estado.chapa, data: hoje });
-    if (tipo === 'metricas') consultarServidor("metricas", { re: estado.chapa, data: hoje });
+    // Como sua rota concentra tudo, apenas re-consulta a chapa
+    consultarServidor(estado.chapa);
 }
 
 function removerUltimaMensagem(texto) {
@@ -88,8 +95,7 @@ function limparChat() {
     estado.chapa = null;
     chat.innerHTML = "";
     quickActions.style.display = "none";
-    appendMessage("👋 Olá! Informe o **RE ou Chapa** para iniciar:");
+    location.reload(); // Recarrega para voltar à tela inicial
 }
 
-window.onload = () => appendMessage("👋 Olá! Informe o **RE ou Chapa** para iniciar:");
 input.addEventListener("keypress", (e) => { if (e.key === "Enter") enviar(); });
